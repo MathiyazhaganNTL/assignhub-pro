@@ -1,29 +1,268 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
+import { Button } from "@/components/ui/button";
+import {
+  ShieldCheck, ClipboardList, Activity, BarChart3, Bell, Lock,
+  ArrowRight, CheckCircle2, GraduationCap, Building2, Briefcase, Users,
+} from "lucide-react";
 
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "Your App" },
-      { name: "description", content: "Replace this with a one-sentence description of your app." },
-      { property: "og:title", content: "Your App" },
-      { property: "og:description", content: "Replace this with a one-sentence description of your app." },
+      { title: "AssignHub — Controlled Assignment Management for Modern Education" },
+      { name: "description", content: "Controlled-access assignment platform for colleges, coaching centers, training institutes and hiring programs." },
+      { property: "og:title", content: "AssignHub — Controlled Assignment Management" },
+      { property: "og:description", content: "Student registers → Admin approves → Assignments unlock." },
     ],
   }),
   component: Index,
 });
 
-// IMPORTANT: Replace this placeholder. See ./README.md for routing conventions.
 function Index() {
   return (
-    <div
-      className="flex min-h-screen items-center justify-center"
-      style={{ backgroundColor: "#fcfbf8" }}
-    >
-      <img
-        data-lovable-blank-page-placeholder="REMOVE_THIS"
-        src="https://cdn.gpteng.co/blank-app-v1.svg"
-        alt="Your app will live here!"
-      />
+    <div className="min-h-screen bg-background text-foreground">
+      <Header />
+      <Hero />
+      <Features />
+      <HowItWorks />
+      <Benefits />
+      <CTA />
+      <Footer />
     </div>
+  );
+}
+
+function Header() {
+  return (
+    <header className="sticky top-0 z-40 border-b border-border/60 bg-background/80 backdrop-blur">
+      <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6">
+        <Link to="/" className="flex items-center gap-2">
+          <div className="grid h-9 w-9 place-items-center rounded-xl bg-brand text-brand-foreground font-bold">A</div>
+          <span className="text-lg font-bold tracking-tight">AssignHub</span>
+        </Link>
+        <nav className="hidden items-center gap-7 text-sm font-medium text-muted-foreground md:flex">
+          <a href="#features" className="hover:text-foreground">Features</a>
+          <a href="#how" className="hover:text-foreground">How it works</a>
+          <a href="#benefits" className="hover:text-foreground">For institutes</a>
+        </nav>
+        <div className="flex items-center gap-2">
+          <Button asChild variant="ghost" size="sm"><Link to="/auth">Sign in</Link></Button>
+          <Button asChild size="sm"><Link to="/auth">Get started</Link></Button>
+        </div>
+      </div>
+    </header>
+  );
+}
+
+function Hero() {
+  return (
+    <section className="relative overflow-hidden">
+      <div className="pointer-events-none absolute inset-0 -z-10 [background:radial-gradient(60%_50%_at_50%_0%,color-mix(in_oklab,var(--brand)_18%,transparent),transparent_60%)]" />
+      <div className="mx-auto max-w-7xl px-4 pb-20 pt-16 sm:px-6 sm:pt-24 lg:pb-28">
+        <div className="mx-auto max-w-3xl text-center">
+          <span className="inline-flex items-center gap-2 rounded-full border border-border bg-card px-3 py-1 text-xs font-medium text-muted-foreground">
+            <ShieldCheck className="h-3.5 w-3.5 text-brand" />
+            Controlled-access EdTech platform
+          </span>
+          <h1 className="mt-6 text-4xl font-extrabold tracking-tight sm:text-5xl lg:text-6xl">
+            Controlled Assignment Management for{" "}
+            <span className="bg-gradient-to-r from-brand to-[oklch(0.62_0.18_220)] bg-clip-text text-transparent">Modern Education</span>
+          </h1>
+          <p className="mx-auto mt-5 max-w-2xl text-lg text-muted-foreground">
+            Students only see assignments after an administrator approves their account. Built for colleges, coaching centers, training institutes and hiring programs.
+          </p>
+          <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
+            <Button asChild size="lg" className="h-12 px-6 text-base">
+              <Link to="/auth">Get started <ArrowRight className="ml-1 h-4 w-4" /></Link>
+            </Button>
+            <Button asChild size="lg" variant="outline" className="h-12 px-6 text-base">
+              <Link to="/auth">Admin login</Link>
+            </Button>
+          </div>
+        </div>
+        <div className="mx-auto mt-16 max-w-5xl"><DashboardPreview /></div>
+      </div>
+    </section>
+  );
+}
+
+function DashboardPreview() {
+  return (
+    <div className="rounded-2xl border border-border bg-card p-2 shadow-2xl shadow-[oklch(0.66_0.17_256/0.15)]">
+      <div className="overflow-hidden rounded-xl border border-border bg-background">
+        <div className="flex items-center gap-1.5 border-b border-border px-4 py-2.5">
+          <span className="h-2.5 w-2.5 rounded-full bg-muted-foreground/30" />
+          <span className="h-2.5 w-2.5 rounded-full bg-muted-foreground/30" />
+          <span className="h-2.5 w-2.5 rounded-full bg-muted-foreground/30" />
+          <span className="ml-3 text-xs text-muted-foreground">assignhub.app/admin</span>
+        </div>
+        <div className="grid grid-cols-12 gap-0">
+          <aside className="col-span-3 hidden border-r border-border bg-secondary/40 p-4 md:block">
+            <div className="space-y-1.5 text-sm">
+              {["Overview", "Students", "Assignments", "Submissions", "Analytics"].map((n, i) => (
+                <div key={n} className={`rounded-md px-3 py-2 ${i === 0 ? "bg-brand text-brand-foreground" : "text-muted-foreground"}`}>{n}</div>
+              ))}
+            </div>
+          </aside>
+          <div className="col-span-12 p-6 md:col-span-9">
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+              {[
+                { l: "Students", v: "248", k: "brand" },
+                { l: "Pending", v: "12", k: "warning" },
+                { l: "Approved", v: "236", k: "success" },
+                { l: "Active", v: "18", k: "brand" },
+              ].map((s) => (
+                <div key={s.l} className="rounded-lg border border-border bg-card p-3">
+                  <div className="text-xs text-muted-foreground">{s.l}</div>
+                  <div className={`mt-1 text-2xl font-bold ${s.k === "warning" ? "text-[oklch(0.6_0.15_75)]" : s.k === "success" ? "text-[oklch(0.55_0.13_152)]" : "text-brand"}`}>{s.v}</div>
+                </div>
+              ))}
+            </div>
+            <div className="mt-4 rounded-lg border border-border bg-card p-4">
+              <div className="mb-3 text-sm font-semibold">Pending approvals</div>
+              <div className="space-y-2">
+                {["Aanya Sharma", "Rohan Mehta", "Priya Iyer"].map((n) => (
+                  <div key={n} className="flex items-center justify-between rounded-md bg-secondary/50 px-3 py-2 text-sm">
+                    <span>{n}</span>
+                    <span className="flex gap-2">
+                      <span className="rounded bg-success px-2 py-0.5 text-xs text-success-foreground">Approve</span>
+                      <span className="rounded border border-border px-2 py-0.5 text-xs text-muted-foreground">Reject</span>
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+const features = [
+  { icon: ShieldCheck, title: "Admin approval workflow", desc: "Every student is reviewed before they get access. Nothing is exposed by default." },
+  { icon: ClipboardList, title: "Assignment management", desc: "Create, edit, attach files, set deadlines, assign cohorts in seconds." },
+  { icon: Activity, title: "Real-time tracking", desc: "See submissions land instantly with status indicators and late flags." },
+  { icon: BarChart3, title: "Submission analytics", desc: "Completion rates, trends and student performance at a glance." },
+  { icon: Bell, title: "Push notifications", desc: "Approval, new assignment and deadline reminders delivered automatically." },
+  { icon: Lock, title: "Secure storage", desc: "Submission files stored with controlled, role-based access." },
+];
+
+function Features() {
+  return (
+    <section id="features" className="border-t border-border bg-surface py-20 sm:py-24">
+      <div className="mx-auto max-w-7xl px-4 sm:px-6">
+        <div className="mx-auto max-w-2xl text-center">
+          <h2 className="text-3xl font-bold tracking-tight sm:text-4xl">Everything you need to run assignments</h2>
+          <p className="mt-3 text-muted-foreground">Designed around the realities of academic and training programs.</p>
+        </div>
+        <div className="mt-12 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+          {features.map((f) => (
+            <div key={f.title} className="group rounded-xl border border-border bg-card p-6 transition hover:-translate-y-0.5 hover:shadow-md">
+              <div className="grid h-10 w-10 place-items-center rounded-lg bg-brand/10 text-brand"><f.icon className="h-5 w-5" /></div>
+              <h3 className="mt-4 text-base font-semibold">{f.title}</h3>
+              <p className="mt-1.5 text-sm text-muted-foreground">{f.desc}</p>
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+const steps = [
+  { n: "01", t: "Student registers", d: "Sign up with name and email. Account enters pending state." },
+  { n: "02", t: "Admin approves", d: "Admin reviews each new registration and approves or rejects." },
+  { n: "03", t: "Assignments unlock", d: "Approved students see their dashboard and assigned work." },
+  { n: "04", t: "Submissions tracked", d: "Admin monitors progress, deadlines and completion in real time." },
+];
+
+function HowItWorks() {
+  return (
+    <section id="how" className="py-20 sm:py-24">
+      <div className="mx-auto max-w-7xl px-4 sm:px-6">
+        <div className="mx-auto max-w-2xl text-center">
+          <h2 className="text-3xl font-bold tracking-tight sm:text-4xl">How it works</h2>
+          <p className="mt-3 text-muted-foreground">A simple, controlled flow from registration to submission.</p>
+        </div>
+        <div className="mt-12 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
+          {steps.map((s) => (
+            <div key={s.n} className="rounded-xl border border-border bg-card p-6">
+              <div className="text-xs font-semibold tracking-widest text-brand">{s.n}</div>
+              <h3 className="mt-2 text-base font-semibold">{s.t}</h3>
+              <p className="mt-1.5 text-sm text-muted-foreground">{s.d}</p>
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+const audiences = [
+  { icon: Building2, t: "Colleges", d: "Manage cohorts across departments with role-based control." },
+  { icon: GraduationCap, t: "Coaching centers", d: "Distribute structured assignment packs to enrolled batches." },
+  { icon: Users, t: "Training institutes", d: "Track learner progress through curated programs." },
+  { icon: Briefcase, t: "Hiring assessments", d: "Issue controlled assessments to verified candidates only." },
+];
+
+function Benefits() {
+  return (
+    <section id="benefits" className="border-t border-border bg-surface py-20 sm:py-24">
+      <div className="mx-auto max-w-7xl px-4 sm:px-6">
+        <div className="mx-auto max-w-2xl text-center">
+          <h2 className="text-3xl font-bold tracking-tight sm:text-4xl">Built for educators who care about access</h2>
+          <p className="mt-3 text-muted-foreground">Not a generic LMS. AssignHub is access-first.</p>
+        </div>
+        <div className="mt-12 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
+          {audiences.map((a) => (
+            <div key={a.t} className="rounded-xl border border-border bg-card p-6">
+              <a.icon className="h-6 w-6 text-brand" />
+              <h3 className="mt-3 text-base font-semibold">{a.t}</h3>
+              <p className="mt-1 text-sm text-muted-foreground">{a.d}</p>
+            </div>
+          ))}
+        </div>
+        <ul className="mx-auto mt-12 grid max-w-3xl gap-3 text-sm sm:grid-cols-2">
+          {["Zero default access", "Role-based dashboards", "Activity logging", "Mobile-friendly experience"].map((t) => (
+            <li key={t} className="flex items-center gap-2 rounded-lg border border-border bg-card px-4 py-2.5">
+              <CheckCircle2 className="h-4 w-4 text-success" /> {t}
+            </li>
+          ))}
+        </ul>
+      </div>
+    </section>
+  );
+}
+
+function CTA() {
+  return (
+    <section className="py-20 sm:py-24">
+      <div className="mx-auto max-w-4xl rounded-2xl border border-border bg-gradient-to-br from-card to-secondary/50 px-6 py-12 text-center sm:px-12">
+        <h2 className="text-3xl font-bold tracking-tight sm:text-4xl">Bring controlled access to your classroom</h2>
+        <p className="mx-auto mt-3 max-w-xl text-muted-foreground">Create your admin account in seconds. Your first registration becomes the institute administrator.</p>
+        <div className="mt-7 flex flex-wrap justify-center gap-3">
+          <Button asChild size="lg" className="h-12 px-6"><Link to="/auth">Create admin account</Link></Button>
+          <Button asChild size="lg" variant="outline" className="h-12 px-6"><Link to="/auth">Sign in</Link></Button>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function Footer() {
+  return (
+    <footer className="border-t border-border bg-surface">
+      <div className="mx-auto flex max-w-7xl flex-col items-center justify-between gap-3 px-4 py-8 text-sm text-muted-foreground sm:flex-row sm:px-6">
+        <div className="flex items-center gap-2">
+          <div className="grid h-6 w-6 place-items-center rounded-md bg-brand text-xs font-bold text-brand-foreground">A</div>
+          <span>© {new Date().getFullYear()} AssignHub. All rights reserved.</span>
+        </div>
+        <div className="flex gap-5">
+          <a href="#" className="hover:text-foreground">Privacy</a>
+          <a href="#" className="hover:text-foreground">Terms</a>
+          <a href="#" className="hover:text-foreground">Contact</a>
+        </div>
+      </div>
+    </footer>
   );
 }
