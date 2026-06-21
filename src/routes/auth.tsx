@@ -10,13 +10,16 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { ShieldCheck, Loader2 } from "lucide-react";
+import { ShieldCheck, Loader2, UserPlus, LogIn } from "lucide-react";
 
 export const Route = createFileRoute("/auth")({
+  validateSearch: (search: Record<string, unknown>) => ({
+    tab: search.tab === "signup" ? "signup" as const : "signin" as const,
+  }),
   head: () => ({
     meta: [
       { title: "Sign in — AssignHub" },
-      { name: "description", content: "Sign in or register for AssignHub. The first registered account becomes the institute administrator." },
+      { name: "description", content: "Sign in or register for AssignHub. Students can request access and admins approve." },
     ],
   }),
   component: AuthPage,
@@ -29,12 +32,20 @@ const signInSchema = z.object({
 
 const signUpSchema = signInSchema.extend({
   full_name: z.string().trim().min(2, "Name is required").max(100),
+  roll_number: z.string().trim().max(50).optional(),
 });
 
 function AuthPage() {
   const navigate = useNavigate();
   const { user, loading: authLoading, role, profile, refresh } = useAuth();
-  const [tab, setTab] = useState<"signin" | "signup">("signin");
+  const searchParams = Route.useSearch();
+  const [tab, setTab] = useState<"signin" | "signup">(searchParams.tab === "signup" ? "signup" : "signin");
+
+  useEffect(() => {
+    if (searchParams.tab === "signup" || searchParams.tab === "signin") {
+      setTab(searchParams.tab);
+    }
+  }, [searchParams.tab]);
 
   useEffect(() => {
     if (authLoading) return;
@@ -55,13 +66,15 @@ function AuthPage() {
         <div className="rounded-2xl border border-border bg-card p-6 shadow-sm sm:p-8">
           <Tabs value={tab} onValueChange={(v) => setTab(v as "signin" | "signup")}>
             <TabsList className="grid w-full grid-cols-2">
-              <TabsTrigger value="signin">Sign in</TabsTrigger>
-              <TabsTrigger value="signup">Create account</TabsTrigger>
+              <TabsTrigger value="signin"><LogIn className="mr-1.5 h-3.5 w-3.5" /> Sign in</TabsTrigger>
+              <TabsTrigger value="signup"><UserPlus className="mr-1.5 h-3.5 w-3.5" /> Request access</TabsTrigger>
             </TabsList>
             <TabsContent value="signin" className="mt-6">
+              <p className="mb-4 text-sm text-muted-foreground">Sign in as an admin or approved student.</p>
               <SignInForm onDone={refresh} />
             </TabsContent>
             <TabsContent value="signup" className="mt-6">
+              <p className="mb-4 text-sm text-muted-foreground">Register to request access. Admins will review your request and approve you.</p>
               <SignUpForm onDone={refresh} switchToSignIn={() => setTab("signin")} />
             </TabsContent>
           </Tabs>
@@ -120,7 +133,7 @@ function SignUpForm({ onDone, switchToSignIn }: { onDone: () => Promise<void>; s
       password: data.password,
       options: {
         emailRedirectTo: `${window.location.origin}/auth`,
-        data: { full_name: data.full_name },
+        data: { full_name: data.full_name, roll_number: data.roll_number || undefined },
       },
     });
     if (error) {
@@ -133,30 +146,39 @@ function SignUpForm({ onDone, switchToSignIn }: { onDone: () => Promise<void>; s
       return;
     }
     await onDone();
-    toast.success("Account created");
+    toast.success("Access request submitted! You'll be notified once an admin approves your account.");
   };
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
       <div className="space-y-1.5">
         <Label htmlFor="su-name">Full name</Label>
-        <Input id="su-name" autoComplete="name" {...register("full_name")} />
+        <Input id="su-name" autoComplete="name" placeholder="Enter your full name" {...register("full_name")} />
         {errors.full_name && <p className="text-xs text-destructive">{errors.full_name.message}</p>}
       </div>
       <div className="space-y-1.5">
+        <Label htmlFor="su-roll">Roll number <span className="text-muted-foreground font-normal">(optional)</span></Label>
+        <Input id="su-roll" placeholder="e.g. CS2024-042" {...register("roll_number")} />
+      </div>
+      <div className="space-y-1.5">
         <Label htmlFor="su-email">Email</Label>
-        <Input id="su-email" type="email" autoComplete="email" {...register("email")} />
+        <Input id="su-email" type="email" autoComplete="email" placeholder="you@example.com" {...register("email")} />
         {errors.email && <p className="text-xs text-destructive">{errors.email.message}</p>}
       </div>
       <div className="space-y-1.5">
         <Label htmlFor="su-password">Password</Label>
-        <Input id="su-password" type="password" autoComplete="new-password" {...register("password")} />
+        <Input id="su-password" type="password" autoComplete="new-password" placeholder="At least 6 characters" {...register("password")} />
         {errors.password && <p className="text-xs text-destructive">{errors.password.message}</p>}
       </div>
       <Button type="submit" className="w-full" disabled={isSubmitting}>
         {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-        Create account
+        <UserPlus className="mr-2 h-4 w-4" />
+        Request access
       </Button>
+      <p className="text-center text-xs text-muted-foreground">
+        Already have an account?{" "}
+        <button type="button" onClick={switchToSignIn} className="font-medium text-brand hover:underline">Sign in instead</button>
+      </p>
     </form>
   );
 }

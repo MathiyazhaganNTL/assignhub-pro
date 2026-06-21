@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import {
   ShieldCheck, ClipboardList, Activity, BarChart3, Bell, Lock,
   ArrowRight, CheckCircle2, GraduationCap, Building2, Briefcase, Users,
+  UserPlus, LogIn,
 } from "lucide-react";
 
 export const Route = createFileRoute("/")({
@@ -45,8 +46,8 @@ function Header() {
           <a href="#benefits" className="hover:text-foreground">For institutes</a>
         </nav>
         <div className="flex items-center gap-2">
-          <Button asChild variant="ghost" size="sm"><Link to="/auth">Sign in</Link></Button>
-          <Button asChild size="sm"><Link to="/auth">Get started</Link></Button>
+          <Button asChild variant="ghost" size="sm"><Link to="/auth" search={{ tab: "signin" }}><LogIn className="mr-1.5 h-3.5 w-3.5" /> Sign in</Link></Button>
+          <Button asChild size="sm"><Link to="/auth" search={{ tab: "signup" }}><UserPlus className="mr-1.5 h-3.5 w-3.5" /> Request access</Link></Button>
         </div>
       </div>
     </header>
@@ -68,16 +69,20 @@ function Hero() {
             <span className="bg-gradient-to-r from-brand to-[oklch(0.62_0.18_220)] bg-clip-text text-transparent">Modern Education</span>
           </h1>
           <p className="mx-auto mt-5 max-w-2xl text-lg text-muted-foreground">
-            Students only see assignments after an administrator approves their account. Built for colleges, coaching centers, training institutes and hiring programs.
+            Students request access, admins approve, and assignments unlock. A secure platform for colleges, coaching centers, training institutes and hiring programs.
           </p>
           <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
             <Button asChild size="lg" className="h-12 px-6 text-base">
-              <Link to="/auth">Get started <ArrowRight className="ml-1 h-4 w-4" /></Link>
+              <Link to="/auth" search={{ tab: "signup" }}><UserPlus className="mr-2 h-4 w-4" /> Request student access</Link>
             </Button>
             <Button asChild size="lg" variant="outline" className="h-12 px-6 text-base">
-              <Link to="/auth">Admin login</Link>
+              <Link to="/auth" search={{ tab: "signin" }}><ShieldCheck className="mr-2 h-4 w-4" /> Admin login</Link>
             </Button>
           </div>
+          <p className="mt-4 text-sm text-muted-foreground">
+            Already have an account?{" "}
+            <Link to="/auth" search={{ tab: "signin" }} className="font-medium text-brand hover:underline">Sign in here</Link>
+          </p>
         </div>
         <div className="mx-auto mt-16 max-w-5xl"><DashboardPreview /></div>
       </div>
@@ -139,7 +144,8 @@ function DashboardPreview() {
 }
 
 const features = [
-  { icon: ShieldCheck, title: "Admin approval workflow", desc: "Every student is reviewed before they get access. Nothing is exposed by default." },
+  { icon: UserPlus, title: "Student access requests", desc: "Students register with their details and request access. No one gets in without admin approval." },
+  { icon: ShieldCheck, title: "Admin approval workflow", desc: "Admin reviews every registration and approves or rejects. Nothing is exposed by default." },
   { icon: ClipboardList, title: "Assignment management", desc: "Create, edit, attach files, set deadlines, assign cohorts in seconds." },
   { icon: Activity, title: "Real-time tracking", desc: "See submissions land instantly with status indicators and late flags." },
   { icon: BarChart3, title: "Submission analytics", desc: "Completion rates, trends and student performance at a glance." },
@@ -170,10 +176,10 @@ function Features() {
 }
 
 const steps = [
-  { n: "01", t: "Student registers", d: "Sign up with name and email. Account enters pending state." },
-  { n: "02", t: "Admin approves", d: "Admin reviews each new registration and approves or rejects." },
-  { n: "03", t: "Assignments unlock", d: "Approved students see their dashboard and assigned work." },
-  { n: "04", t: "Submissions tracked", d: "Admin monitors progress, deadlines and completion in real time." },
+  { n: "01", t: "Student requests access", d: "Sign up with your name, email and details. Your account enters a pending approval queue." },
+  { n: "02", t: "Admin reviews & approves", d: "The admin sees your request on their dashboard and approves or rejects it." },
+  { n: "03", t: "Student logs in & works", d: "Once approved, log in to view assignments, submit work, and track deadlines." },
+  { n: "04", t: "Progress tracked in real time", d: "Admin monitors submissions, completion rates and deadlines. Students see their own progress." },
 ];
 
 function HowItWorks() {
@@ -238,12 +244,16 @@ function CTA() {
   return (
     <section className="py-20 sm:py-24">
       <div className="mx-auto max-w-4xl rounded-2xl border border-border bg-gradient-to-br from-card to-secondary/50 px-6 py-12 text-center sm:px-12">
-        <h2 className="text-3xl font-bold tracking-tight sm:text-4xl">Bring controlled access to your classroom</h2>
-        <p className="mx-auto mt-3 max-w-xl text-muted-foreground">Create your admin account in seconds. Your first registration becomes the institute administrator.</p>
+        <h2 className="text-3xl font-bold tracking-tight sm:text-4xl">Get started in seconds</h2>
+        <p className="mx-auto mt-3 max-w-xl text-muted-foreground">Admins: create your institute account. Students: request access and start working on assignments once approved.</p>
         <div className="mt-7 flex flex-wrap justify-center gap-3">
-          <Button asChild size="lg" className="h-12 px-6"><Link to="/auth">Create admin account</Link></Button>
-          <Button asChild size="lg" variant="outline" className="h-12 px-6"><Link to="/auth">Sign in</Link></Button>
+          <Button asChild size="lg" className="h-12 px-6"><Link to="/auth" search={{ tab: "signup" }}><UserPlus className="mr-2 h-4 w-4" /> Request student access</Link></Button>
+          <Button asChild size="lg" variant="outline" className="h-12 px-6"><Link to="/auth" search={{ tab: "signup" }}><ShieldCheck className="mr-2 h-4 w-4" /> Create admin account</Link></Button>
         </div>
+        <p className="mt-4 text-sm text-muted-foreground">
+          Already registered?{" "}
+          <Link to="/auth" search={{ tab: "signin" }} className="font-medium text-brand hover:underline">Sign in to your account</Link>
+        </p>
       </div>
     </section>
   );

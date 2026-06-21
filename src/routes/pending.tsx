@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Clock4, XCircle, RefreshCw, LogOut } from "lucide-react";
 
 export const Route = createFileRoute("/pending")({
-  head: () => ({ meta: [{ title: "Awaiting approval — AssignHub" }] }),
+  head: () => ({ meta: [{ title: "Access request pending — AssignHub" }] }),
   component: PendingPage,
 });
 
@@ -33,12 +33,12 @@ function PendingPage() {
           {rejected ? <XCircle className="h-7 w-7" /> : <Clock4 className="h-7 w-7" />}
         </div>
         <h1 className="mt-5 text-2xl font-bold tracking-tight">
-          {rejected ? "Account not approved" : "Awaiting admin approval"}
+          {rejected ? "Access request denied" : "Access request pending"}
         </h1>
         <p className="mt-2 text-sm text-muted-foreground">
           {rejected
-            ? "Your registration was reviewed and rejected by the administrator."
-            : "Your account is pending review. You'll get access to assignments as soon as an administrator approves you."}
+            ? "Your access request was reviewed and denied by the administrator. You can contact them for more information."
+            : "Your access request is being reviewed. You'll be able to log in and view assignments as soon as an administrator approves your request."}
         </p>
         {rejected && profile.rejection_reason && (
           <div className="mt-4 rounded-lg border border-destructive/30 bg-destructive/5 p-3 text-left text-sm text-destructive">
