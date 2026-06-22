@@ -12,6 +12,14 @@ export interface Profile {
   status: ApprovalStatus;
   rejection_reason: string | null;
   created_at: string;
+  mobile_no: string | null;
+  roll_number: string | null;
+  department: string | null;
+  year: string | null;
+  semester: string | null;
+  linkedin_url: string | null;
+  career_goal: string | null;
+  profile_picture_url: string | null;
 }
 
 interface AuthState {

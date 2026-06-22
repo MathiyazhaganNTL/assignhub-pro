@@ -1,4 +1,4 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -31,8 +31,19 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuGroup,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
+import {
   LogOut, BookOpen, Bell, CheckCircle2, Clock, AlertCircle, FileText,
-  Link as LinkIcon, UploadCloud, Loader2, Check, RefreshCw, Sparkles
+  Link as LinkIcon, UploadCloud, Loader2, Check, RefreshCw, Sparkles,
+  User, Settings, ChevronDown, Phone
 } from "lucide-react";
 
 export const Route = createFileRoute("/dashboard")({
@@ -100,7 +111,7 @@ function StudentDashboard() {
       const { data, error } = await supabase
         .from("submissions")
         .select("*")
-        .eq("student_id", user?.id);
+        .eq("student_id", user!.id);
       if (error) throw error;
       return (data ?? []) as Submission[];
     },
@@ -157,7 +168,7 @@ function StudentDashboard() {
   // Auth Protection
   useEffect(() => {
     if (loading) return;
-    if (!user) { navigate({ to: "/auth", replace: true }); return; }
+    if (!user) { navigate({ to: "/auth", search: { tab: "signin" }, replace: true }); return; }
     if (role === "admin") { navigate({ to: "/admin", replace: true }); return; }
     if (profile && profile.status !== "approved") navigate({ to: "/pending", replace: true });
   }, [loading, user, role, profile, navigate]);
@@ -168,7 +179,7 @@ function StudentDashboard() {
       const { error } = await supabase
         .from("notifications")
         .update({ is_read: true })
-        .eq("user_id", user?.id)
+        .eq("user_id", user!.id)
         .eq("is_read", false);
       if (error) throw error;
     },
@@ -301,9 +312,73 @@ function StudentDashboard() {
               </PopoverContent>
             </Popover>
 
-            <Button variant="ghost" size="sm" onClick={() => signOut().then(() => navigate({ to: "/", replace: true }))}>
-              <LogOut className="mr-2 h-4 w-4" /> Sign out
-            </Button>
+            {/* Profile Dropdown */}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <button className="flex items-center gap-2 rounded-full p-1 pr-2 hover:bg-muted/60 transition-colors outline-none focus-visible:ring-2 focus-visible:ring-ring" id="profile-menu-trigger">
+                  <Avatar className="h-8 w-8 border-2 border-brand/20">
+                    <AvatarImage src={profile.profile_picture_url || undefined} alt={profile.full_name || "Student"} />
+                    <AvatarFallback className="bg-brand/10 text-brand text-xs font-bold">
+                      {(profile.full_name || "S").slice(0, 2).toUpperCase()}
+                    </AvatarFallback>
+                  </Avatar>
+                  <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" />
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent className="w-72" align="end" sideOffset={8}>
+                {/* Profile Header */}
+                <div className="px-3 py-3">
+                  <div className="flex items-center gap-3">
+                    <Avatar className="h-11 w-11 border-2 border-brand/20">
+                      <AvatarImage src={profile.profile_picture_url || undefined} alt={profile.full_name || "Student"} />
+                      <AvatarFallback className="bg-brand/10 text-brand text-sm font-bold">
+                        {(profile.full_name || "S").slice(0, 2).toUpperCase()}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-semibold truncate">{profile.full_name || "Student"}</p>
+                      <p className="text-xs text-muted-foreground truncate">{profile.email}</p>
+                      <div className="flex items-center gap-1.5 mt-1">
+                        <Badge variant="secondary" className="text-[10px] px-1.5 py-0 h-4 bg-brand/10 text-brand border-none font-semibold">Student</Badge>
+                        <Badge variant="secondary" className="text-[10px] px-1.5 py-0 h-4 bg-success/10 text-success border-none font-semibold">
+                          <CheckCircle2 className="h-2.5 w-2.5 mr-0.5" />
+                          {profile.status === "approved" ? "Approved" : profile.status}
+                        </Badge>
+                      </div>
+                    </div>
+                  </div>
+                  {profile.mobile_no && (
+                    <div className="flex items-center gap-1.5 mt-2.5 text-xs text-muted-foreground">
+                      <Phone className="h-3 w-3" />
+                      <span>{profile.mobile_no}</span>
+                    </div>
+                  )}
+                </div>
+                <DropdownMenuSeparator />
+                <DropdownMenuGroup>
+                  <DropdownMenuItem asChild className="cursor-pointer">
+                    <Link to="/student/profile" search={{ edit: false }}>
+                      <User className="h-4 w-4 mr-2" />
+                      View Profile
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild className="cursor-pointer">
+                    <Link to="/student/profile" search={{ edit: true }}>
+                      <Settings className="h-4 w-4 mr-2" />
+                      Edit Profile
+                    </Link>
+                  </DropdownMenuItem>
+                </DropdownMenuGroup>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem
+                  className="cursor-pointer text-destructive focus:text-destructive focus:bg-destructive/10"
+                  onClick={() => signOut().then(() => navigate({ to: "/", replace: true }))}
+                >
+                  <LogOut className="h-4 w-4 mr-2" />
+                  Sign Out
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         </div>
       </header>
@@ -371,7 +446,7 @@ function StudentDashboard() {
 
                       {a.format === "link" && (
                         <div className="mt-4">
-                          <Button size="xs" variant="outline" asChild>
+                          <Button size="sm" variant="outline" asChild>
                             <a href={a.content} target="_blank" rel="noreferrer"><LinkIcon className="mr-1.5 h-3.5 w-3.5" /> View External Resource</a>
                           </Button>
                         </div>
@@ -379,7 +454,7 @@ function StudentDashboard() {
 
                       {a.format === "pdf" && (
                         <div className="mt-4">
-                          <Button size="xs" variant="outline" asChild>
+                          <Button size="sm" variant="outline" asChild>
                             <a href={a.content} target="_blank" rel="noreferrer"><FileText className="mr-1.5 h-3.5 w-3.5" /> View PDF document</a>
                           </Button>
                         </div>

@@ -23,6 +23,14 @@ export type Database = {
           rejection_reason: string | null
           status: Database["public"]["Enums"]["approval_status"]
           updated_at: string
+          mobile_no: string | null
+          roll_number: string | null
+          department: string | null
+          year: string | null
+          semester: string | null
+          linkedin_url: string | null
+          career_goal: string | null
+          profile_picture_url: string | null
         }
         Insert: {
           created_at?: string
@@ -32,6 +40,14 @@ export type Database = {
           rejection_reason?: string | null
           status?: Database["public"]["Enums"]["approval_status"]
           updated_at?: string
+          mobile_no?: string | null
+          roll_number?: string | null
+          department?: string | null
+          year?: string | null
+          semester?: string | null
+          linkedin_url?: string | null
+          career_goal?: string | null
+          profile_picture_url?: string | null
         }
         Update: {
           created_at?: string
@@ -41,6 +57,14 @@ export type Database = {
           rejection_reason?: string | null
           status?: Database["public"]["Enums"]["approval_status"]
           updated_at?: string
+          mobile_no?: string | null
+          roll_number?: string | null
+          department?: string | null
+          year?: string | null
+          semester?: string | null
+          linkedin_url?: string | null
+          career_goal?: string | null
+          profile_picture_url?: string | null
         }
         Relationships: []
       }
