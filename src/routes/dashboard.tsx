@@ -1,18 +1,160 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useEffect } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
+import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth-context";
 import { Button } from "@/components/ui/button";
-import { LogOut, BookOpen, Bell, CheckCircle2 } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Badge } from "@/components/ui/badge";
+import { Progress } from "@/components/ui/progress";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  LogOut, BookOpen, Bell, CheckCircle2, Clock, AlertCircle, FileText,
+  Link as LinkIcon, UploadCloud, Loader2, Check, RefreshCw, Sparkles
+} from "lucide-react";
 
 export const Route = createFileRoute("/dashboard")({
   head: () => ({ meta: [{ title: "Dashboard — AssignHub" }] }),
   component: StudentDashboard,
 });
 
+interface Assignment {
+  id: string;
+  title: string;
+  description: string | null;
+  format: "pdf" | "link" | "rich-text";
+  content: string;
+  deadline: string;
+  created_at: string;
+}
+
+interface Submission {
+  id: string;
+  assignment_id: string;
+  student_id: string;
+  format: "file" | "text";
+  content: string;
+  submitted_at: string;
+}
+
+interface Notification {
+  id: string;
+  user_id: string;
+  title: string;
+  message: string;
+  is_read: boolean;
+  created_at: string;
+}
+
 function StudentDashboard() {
   const navigate = useNavigate();
+  const qc = useQueryClient();
   const { user, loading, role, profile, signOut } = useAuth();
+  
+  // Modal State
+  const [activeAssignment, setActiveAssignment] = useState<Assignment | null>(null);
+  const [submissionOpen, setSubmissionOpen] = useState(false);
+  const [subFormat, setSubFormat] = useState<"file" | "text">("text");
+  const [subContent, setSubContent] = useState("");
+  const [uploading, setUploading] = useState(false);
 
+  // Queries
+  const { data: assignments, isLoading: loadingAssignments } = useQuery({
+    queryKey: ["student-assignments"],
+    queryFn: async (): Promise<Assignment[]> => {
+      const { data, error } = await supabase
+        .from("assignments")
+        .select("*")
+        .order("deadline", { ascending: true });
+      if (error) throw error;
+      return (data ?? []) as Assignment[];
+    },
+    enabled: !!user,
+  });
+
+  const { data: submissions, isLoading: loadingSubmissions } = useQuery({
+    queryKey: ["student-submissions"],
+    queryFn: async (): Promise<Submission[]> => {
+      const { data, error } = await supabase
+        .from("submissions")
+        .select("*")
+        .eq("student_id", user?.id);
+      if (error) throw error;
+      return (data ?? []) as Submission[];
+    },
+    enabled: !!user,
+  });
+
+  const { data: notifications, isLoading: loadingNotifications } = useQuery({
+    queryKey: ["student-notifications"],
+    queryFn: async (): Promise<Notification[]> => {
+      const { data, error } = await supabase
+        .from("notifications")
+        .select("*")
+        .order("created_at", { ascending: false });
+      if (error) throw error;
+      return (data ?? []) as Notification[];
+    },
+    enabled: !!user,
+  });
+
+  // Real-time postgres subscriptions
+  useEffect(() => {
+    if (!user) return;
+
+    const channel = supabase
+      .channel("student-dashboard")
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "notifications", filter: `user_id=eq.${user.id}` },
+        () => { 
+          qc.invalidateQueries({ queryKey: ["student-notifications"] });
+          toast("New notification received!");
+        }
+      )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "assignments" },
+        () => { 
+          qc.invalidateQueries({ queryKey: ["student-assignments"] });
+          toast("Assignments updated!");
+        }
+      )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "submissions", filter: `student_id=eq.${user.id}` },
+        () => { qc.invalidateQueries({ queryKey: ["student-submissions"] }); }
+      )
+      .subscribe();
+
+    return () => {
+      void supabase.removeChannel(channel);
+    };
+  }, [user, qc]);
+
+  // Auth Protection
   useEffect(() => {
     if (loading) return;
     if (!user) { navigate({ to: "/auth", replace: true }); return; }
@@ -20,60 +162,307 @@ function StudentDashboard() {
     if (profile && profile.status !== "approved") navigate({ to: "/pending", replace: true });
   }, [loading, user, role, profile, navigate]);
 
+  // Mutations
+  const markNotificationsRead = useMutation({
+    mutationFn: async () => {
+      const { error } = await supabase
+        .from("notifications")
+        .update({ is_read: true })
+        .eq("user_id", user?.id)
+        .eq("is_read", false);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["student-notifications"] });
+    }
+  });
+
+  const submitAssignment = useMutation({
+    mutationFn: async () => {
+      const payload = {
+        assignment_id: activeAssignment?.id!,
+        student_id: user?.id!,
+        format: subFormat,
+        content: subContent,
+      };
+
+      const { error } = await supabase
+        .from("submissions")
+        .insert(payload);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success("Assignment submitted successfully!");
+      qc.invalidateQueries({ queryKey: ["student-submissions"] });
+      setSubmissionOpen(false);
+      resetForm();
+    },
+    onError: (err: any) => {
+      toast.error(err.message);
+    }
+  });
+
+  // Storage Upload Helper
+  const uploadSubmissionFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setUploading(true);
+    try {
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${user?.id}_${activeAssignment?.id}_${Date.now()}.${fileExt}`;
+      const filePath = `${fileName}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from("submissions")
+        .upload(filePath, file);
+
+      if (uploadError) throw uploadError;
+
+      const { data: { publicUrl } } = supabase.storage
+        .from("submissions")
+        .getPublicUrl(filePath);
+
+      setSubContent(publicUrl);
+      toast.success("File uploaded successfully!");
+    } catch (err: any) {
+      toast.error(`Upload failed: ${err.message}`);
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const resetForm = () => {
+    setSubFormat("text");
+    setSubContent("");
+    setActiveAssignment(null);
+  };
+
+  const unreadCount = useMemo(() => {
+    return notifications?.filter(n => !n.is_read).length || 0;
+  }, [notifications]);
+
+  const stats = useMemo(() => {
+    const total = assignments?.length || 0;
+    const submitted = submissions?.length || 0;
+    const active = total - submitted;
+    return { total, submitted, active };
+  }, [assignments, submissions]);
+
   if (loading || !profile) {
     return <div className="grid min-h-screen place-items-center text-sm text-muted-foreground">Loading…</div>;
   }
 
   return (
     <div className="min-h-screen bg-background">
-      <header className="border-b border-border bg-card">
+      <header className="border-b border-border bg-card sticky top-0 z-40">
         <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-4 sm:px-6">
           <div className="flex items-center gap-2">
             <div className="grid h-8 w-8 place-items-center rounded-lg bg-brand text-brand-foreground text-sm font-bold">A</div>
             <div>
               <div className="text-sm font-semibold leading-tight">AssignHub</div>
-              <div className="text-xs text-muted-foreground leading-tight">Student</div>
+              <div className="text-xs text-muted-foreground leading-tight">Student Portal</div>
             </div>
           </div>
-          <Button variant="ghost" size="sm" onClick={() => signOut().then(() => navigate({ to: "/", replace: true }))}>
-            <LogOut className="mr-2 h-4 w-4" /> Sign out
-          </Button>
+          
+          <div className="flex items-center gap-3">
+            {/* Notification Bell */}
+            <Popover onOpenChange={(open) => { if(open && unreadCount > 0) markNotificationsRead.mutate(); }}>
+              <PopoverTrigger asChild>
+                <Button variant="ghost" size="icon" className="relative">
+                  <Bell className="h-4.5 w-4.5 text-muted-foreground" />
+                  {unreadCount > 0 && (
+                    <span className="absolute top-1.5 right-1.5 h-2 w-2 rounded-full bg-destructive animate-pulse" />
+                  )}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-80 p-0" align="end">
+                <div className="p-4 border-b border-border flex justify-between items-center bg-muted/20">
+                  <h3 className="font-semibold text-sm">Notifications</h3>
+                  {unreadCount > 0 && <Badge variant="secondary" className="bg-destructive/10 text-destructive border-none">{unreadCount} new</Badge>}
+                </div>
+                <div className="max-h-64 overflow-y-auto divide-y divide-border">
+                  {loadingNotifications ? (
+                    <div className="p-4 text-center text-xs text-muted-foreground"><Loader2 className="animate-spin inline h-4 w-4 mr-1" /> Loading...</div>
+                  ) : notifications?.length === 0 ? (
+                    <div className="p-6 text-center text-xs text-muted-foreground">No notifications yet.</div>
+                  ) : (
+                    notifications?.map((n) => (
+                      <div key={n.id} className={`p-4 text-left transition-colors hover:bg-muted/10 ${!n.is_read ? 'bg-brand/5' : ''}`}>
+                        <div className="font-semibold text-xs text-foreground flex items-center justify-between">
+                          <span>{n.title}</span>
+                          <span className="text-[10px] text-muted-foreground font-normal">{new Date(n.created_at).toLocaleDateString()}</span>
+                        </div>
+                        <p className="text-xs text-muted-foreground mt-1 leading-normal">{n.message}</p>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </PopoverContent>
+            </Popover>
+
+            <Button variant="ghost" size="sm" onClick={() => signOut().then(() => navigate({ to: "/", replace: true }))}>
+              <LogOut className="mr-2 h-4 w-4" /> Sign out
+            </Button>
+          </div>
         </div>
       </header>
 
-      <main className="mx-auto max-w-6xl px-4 py-8 sm:px-6">
-        <div className="rounded-2xl border border-border bg-gradient-to-br from-brand/10 to-card p-6">
-          <p className="text-sm text-muted-foreground">Welcome back,</p>
-          <h1 className="mt-1 text-2xl font-bold tracking-tight">{profile.full_name || "Student"}</h1>
-          <p className="mt-2 inline-flex items-center gap-1.5 text-sm text-success">
-            <CheckCircle2 className="h-4 w-4" /> Account approved
-          </p>
+      <main className="mx-auto max-w-6xl px-4 py-8 sm:px-6 space-y-6">
+        <div className="rounded-2xl border border-border bg-gradient-to-br from-brand/10 to-card p-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div>
+            <p className="text-sm text-muted-foreground">Welcome back,</p>
+            <h1 className="mt-1 text-2xl font-bold tracking-tight">{profile.full_name || "Student"}</h1>
+            <p className="mt-2 inline-flex items-center gap-1.5 text-sm text-success font-medium">
+              <CheckCircle2 className="h-4 w-4" /> Account Approved & Access Granted
+            </p>
+          </div>
+          <div className="flex gap-2">
+            <Button size="sm" variant="outline" onClick={() => { qc.invalidateQueries(); toast.success("Refreshed data!"); }}><RefreshCw className="h-3.5 w-3.5 mr-1.5" /> Refresh</Button>
+          </div>
         </div>
 
-        <div className="mt-6 grid gap-4 sm:grid-cols-3">
-          <StatCard icon={BookOpen} label="Active assignments" value="0" />
-          <StatCard icon={CheckCircle2} label="Submitted" value="0" />
-          <StatCard icon={Bell} label="Notifications" value="0" />
+        <div className="grid gap-4 sm:grid-cols-3">
+          <StatCard icon={BookOpen} label="Total assignments" value={String(stats.total)} />
+          <StatCard icon={CheckCircle2} label="Submitted" value={String(stats.submitted)} />
+          <StatCard icon={Clock} label="Pending submission" value={String(stats.active)} tone={stats.active > 0 ? "warning" : "default"} />
         </div>
 
-        <div className="mt-8 rounded-xl border border-dashed border-border bg-card p-10 text-center">
-          <BookOpen className="mx-auto h-10 w-10 text-muted-foreground" />
-          <h2 className="mt-4 text-lg font-semibold">No assignments yet</h2>
-          <p className="mt-1.5 text-sm text-muted-foreground">When an administrator publishes an assignment, it will show up here.</p>
+        <div className="space-y-4">
+          <h2 className="text-xl font-bold tracking-tight">Your Assignments</h2>
+          
+          {loadingAssignments || loadingSubmissions ? (
+            <div className="text-center py-20 text-sm text-muted-foreground"><Loader2 className="animate-spin inline h-5 w-5 mr-2" />Loading assignments…</div>
+          ) : assignments?.length === 0 ? (
+            <div className="rounded-xl border border-dashed border-border bg-card p-12 text-center">
+              <BookOpen className="mx-auto h-10 w-10 text-muted-foreground" />
+              <h3 className="mt-4 text-lg font-semibold">No assignments published yet</h3>
+              <p className="mt-1.5 text-sm text-muted-foreground">Check back later once the administrator releases new assignment material.</p>
+            </div>
+          ) : (
+            <div className="grid gap-4 md:grid-cols-2">
+              {assignments?.map((a) => {
+                const sub = submissions?.find((s) => s.assignment_id === a.id);
+                const isLate = new Date() > new Date(a.deadline);
+                
+                return (
+                  <div key={a.id} className="rounded-xl border border-border bg-card p-5 flex flex-col justify-between hover:shadow-md transition">
+                    <div>
+                      <div className="flex items-start justify-between gap-2">
+                        <h3 className="font-bold text-base text-foreground leading-snug">{a.title}</h3>
+                        {sub ? (
+                          <Badge variant="secondary" className="bg-success/15 text-success hover:bg-success/15 border-none font-semibold"><Check className="h-3 w-3 mr-1" /> Submitted</Badge>
+                        ) : isLate ? (
+                          <Badge variant="destructive" className="bg-destructive/15 text-destructive hover:bg-destructive/15 border-none font-semibold"><AlertCircle className="h-3 w-3 mr-1" /> Overdue</Badge>
+                        ) : (
+                          <Badge variant="outline" className="text-warning border-warning/30 bg-warning/5 font-semibold"><Clock className="h-3 w-3 mr-1" /> Pending</Badge>
+                        )}
+                      </div>
+                      
+                      <p className="text-xs text-muted-foreground mt-2 leading-relaxed whitespace-pre-wrap font-medium">
+                        {a.description || "No guidelines specified for this assignment."}
+                      </p>
+
+                      {a.format === "rich-text" && (
+                        <div className="mt-4 bg-muted/40 rounded-lg p-3 text-xs border font-medium text-foreground max-h-24 overflow-y-auto whitespace-pre-wrap">
+                          {a.content}
+                        </div>
+                      )}
+
+                      {a.format === "link" && (
+                        <div className="mt-4">
+                          <Button size="xs" variant="outline" asChild>
+                            <a href={a.content} target="_blank" rel="noreferrer"><LinkIcon className="mr-1.5 h-3.5 w-3.5" /> View External Resource</a>
+                          </Button>
+                        </div>
+                      )}
+
+                      {a.format === "pdf" && (
+                        <div className="mt-4">
+                          <Button size="xs" variant="outline" asChild>
+                            <a href={a.content} target="_blank" rel="noreferrer"><FileText className="mr-1.5 h-3.5 w-3.5" /> View PDF document</a>
+                          </Button>
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="mt-6 pt-4 border-t border-border flex items-center justify-between">
+                      <div className="text-xs text-muted-foreground font-semibold flex items-center gap-1.5">
+                        <Clock className="h-3.5 w-3.5" /> Due: {new Date(a.deadline).toLocaleString()}
+                      </div>
+                      
+                      {!sub && (
+                        <Dialog open={submissionOpen && activeAssignment?.id === a.id} onOpenChange={(val) => { setSubmissionOpen(val); if(val) setActiveAssignment(a); else resetForm(); }}>
+                          <DialogTrigger asChild>
+                            <Button size="sm" variant={isLate ? "destructive" : "default"} onClick={() => { setActiveAssignment(a); setSubmissionOpen(true); }}><UploadCloud className="mr-1.5 h-4 w-4" /> Submit Work</Button>
+                          </DialogTrigger>
+                          <DialogContent className="sm:max-w-md">
+                            <DialogHeader>
+                              <DialogTitle>Submit assignment</DialogTitle>
+                              <DialogDescription>
+                                Upload your submission response for "{a.title}".
+                              </DialogDescription>
+                            </DialogHeader>
+                            <div className="space-y-4 py-2">
+                              <div className="space-y-1.5">
+                                <label className="text-sm font-semibold">Submission format</label>
+                                <Select value={subFormat} onValueChange={(val: any) => { setSubFormat(val); setSubContent(""); }}>
+                                  <SelectTrigger><SelectValue /></SelectTrigger>
+                                  <SelectContent>
+                                    <SelectItem value="text">Written text answer</SelectItem>
+                                    <SelectItem value="file">File upload</SelectItem>
+                                  </SelectContent>
+                                </Select>
+                              </div>
+
+                              {subFormat === "text" ? (
+                                <div className="space-y-1.5">
+                                  <label className="text-sm font-semibold">Your response text</label>
+                                  <Textarea value={subContent} onChange={(e) => setSubContent(e.target.value)} placeholder="Type your text submission details here..." rows={6} />
+                                </div>
+                              ) : (
+                                <div className="space-y-1.5 border border-dashed border-border rounded-lg p-4 bg-muted/40">
+                                  <label className="text-sm font-semibold block mb-2">Upload attachment</label>
+                                  <Input type="file" onChange={uploadSubmissionFile} disabled={uploading} className="bg-background cursor-pointer" />
+                                  {uploading && <div className="text-xs text-muted-foreground mt-1"><Loader2 className="mr-1 inline h-3.5 w-3.5 animate-spin" />Uploading file to storage...</div>}
+                                  {subContent && !uploading && (
+                                    <div className="text-xs text-brand font-medium mt-2 flex items-center gap-1">
+                                      <CheckCircle2 className="h-3.5 w-3.5 text-success" /> File ready: <a href={subContent} target="_blank" rel="noreferrer" className="underline truncate max-w-xs">{subContent}</a>
+                                    </div>
+                                  )}
+                                </div>
+                              )}
+                            </div>
+                            <DialogFooter>
+                              <Button variant="outline" onClick={() => setSubmissionOpen(false)}>Cancel</Button>
+                              <Button onClick={() => submitAssignment.mutate()} disabled={!subContent || submitAssignment.isPending}>
+                                {submitAssignment.isPending && <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />}
+                                Submit
+                              </Button>
+                            </DialogFooter>
+                          </DialogContent>
+                        </Dialog>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </div>
       </main>
     </div>
   );
 }
 
-function StatCard({ icon: Icon, label, value }: { icon: typeof BookOpen; label: string; value: string }) {
+function StatCard({ icon: Icon, label, value, tone = "default" }: { icon: typeof BookOpen; label: string; value: string; tone?: "default" | "warning" }) {
   return (
     <div className="rounded-xl border border-border bg-card p-5">
       <div className="flex items-center justify-between">
-        <div className="text-sm text-muted-foreground">{label}</div>
+        <div className="text-sm text-muted-foreground font-semibold">{label}</div>
         <Icon className="h-4 w-4 text-muted-foreground" />
       </div>
-      <div className="mt-2 text-3xl font-bold">{value}</div>
+      <div className={`mt-2 text-3xl font-extrabold ${tone === "warning" && value !== "0" ? "text-warning" : "text-foreground"}`}>{value}</div>
     </div>
   );
 }

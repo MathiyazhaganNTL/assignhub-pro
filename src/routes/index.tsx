@@ -76,12 +76,12 @@ function Hero() {
               <Link to="/auth" search={{ tab: "signup" }}><UserPlus className="mr-2 h-4 w-4" /> Request student access</Link>
             </Button>
             <Button asChild size="lg" variant="outline" className="h-12 px-6 text-base">
-              <Link to="/auth" search={{ tab: "signin" }}><ShieldCheck className="mr-2 h-4 w-4" /> Admin login</Link>
+              <Link to="/admin-login"><ShieldCheck className="mr-2 h-4 w-4" /> Admin login</Link>
             </Button>
           </div>
           <p className="mt-4 text-sm text-muted-foreground">
-            Already have an account?{" "}
-            <Link to="/auth" search={{ tab: "signin" }} className="font-medium text-brand hover:underline">Sign in here</Link>
+            Already a student?{" "}
+            <Link to="/auth" search={{ tab: "signin" }} className="font-medium text-brand hover:underline">Student sign in</Link>
           </p>
         </div>
         <div className="mx-auto mt-16 max-w-5xl"><DashboardPreview /></div>
@@ -248,11 +248,11 @@ function CTA() {
         <p className="mx-auto mt-3 max-w-xl text-muted-foreground">Admins: create your institute account. Students: request access and start working on assignments once approved.</p>
         <div className="mt-7 flex flex-wrap justify-center gap-3">
           <Button asChild size="lg" className="h-12 px-6"><Link to="/auth" search={{ tab: "signup" }}><UserPlus className="mr-2 h-4 w-4" /> Request student access</Link></Button>
-          <Button asChild size="lg" variant="outline" className="h-12 px-6"><Link to="/auth" search={{ tab: "signup" }}><ShieldCheck className="mr-2 h-4 w-4" /> Create admin account</Link></Button>
+          <Button asChild size="lg" variant="outline" className="h-12 px-6"><Link to="/admin-login"><ShieldCheck className="mr-2 h-4 w-4" /> Admin login</Link></Button>
         </div>
         <p className="mt-4 text-sm text-muted-foreground">
-          Already registered?{" "}
-          <Link to="/auth" search={{ tab: "signin" }} className="font-medium text-brand hover:underline">Sign in to your account</Link>
+          Already a student?{" "}
+          <Link to="/auth" search={{ tab: "signin" }} className="font-medium text-brand hover:underline">Student sign in</Link>
         </p>
       </div>
     </section>

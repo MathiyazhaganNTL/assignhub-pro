@@ -15,7 +15,7 @@ function PendingPage() {
 
   useEffect(() => {
     if (loading) return;
-    if (!user) { navigate({ to: "/auth", replace: true }); return; }
+    if (!user) { navigate({ to: "/auth", search: { tab: "signin" }, replace: true }); return; }
     if (role === "admin") { navigate({ to: "/admin", replace: true }); return; }
     if (profile?.status === "approved") navigate({ to: "/dashboard", replace: true });
   }, [loading, user, role, profile, navigate]);
@@ -49,7 +49,7 @@ function PendingPage() {
           <Button onClick={() => void refresh()} variant="outline">
             <RefreshCw className="mr-2 h-4 w-4" /> Check status
           </Button>
-          <Button onClick={() => signOut().then(() => navigate({ to: "/auth", replace: true }))} variant="ghost">
+          <Button onClick={() => signOut().then(() => navigate({ to: "/auth", search: { tab: "signin" }, replace: true }))} variant="ghost">
             <LogOut className="mr-2 h-4 w-4" /> Sign out
           </Button>
         </div>

@@ -18,8 +18,8 @@ export const Route = createFileRoute("/auth")({
   }),
   head: () => ({
     meta: [
-      { title: "Sign in — AssignHub" },
-      { name: "description", content: "Sign in or register for AssignHub. Students can request access and admins approve." },
+      { title: "Student Portal — AssignHub" },
+      { name: "description", content: "Student portal for AssignHub. Sign in or request access to view and submit assignments." },
     ],
   }),
   component: AuthPage,
@@ -64,25 +64,38 @@ function AuthPage() {
         </Link>
 
         <div className="rounded-2xl border border-border bg-card p-6 shadow-sm sm:p-8">
+          <div className="mb-5 text-center">
+            <div className="mx-auto grid h-12 w-12 place-items-center rounded-full bg-brand/10 text-brand">
+              <UserPlus className="h-6 w-6" />
+            </div>
+            <h1 className="mt-3 text-xl font-bold tracking-tight">Student Portal</h1>
+          </div>
           <Tabs value={tab} onValueChange={(v) => setTab(v as "signin" | "signup")}>
             <TabsList className="grid w-full grid-cols-2">
               <TabsTrigger value="signin"><LogIn className="mr-1.5 h-3.5 w-3.5" /> Sign in</TabsTrigger>
               <TabsTrigger value="signup"><UserPlus className="mr-1.5 h-3.5 w-3.5" /> Request access</TabsTrigger>
             </TabsList>
             <TabsContent value="signin" className="mt-6">
-              <p className="mb-4 text-sm text-muted-foreground">Sign in as an admin or approved student.</p>
+              <p className="mb-4 text-sm text-muted-foreground">Sign in with your approved student account.</p>
               <SignInForm onDone={refresh} />
             </TabsContent>
             <TabsContent value="signup" className="mt-6">
-              <p className="mb-4 text-sm text-muted-foreground">Register to request access. Admins will review your request and approve you.</p>
+              <p className="mb-4 text-sm text-muted-foreground">Register to request access. An admin will review and approve your request.</p>
               <SignUpForm onDone={refresh} switchToSignIn={() => setTab("signin")} />
             </TabsContent>
           </Tabs>
         </div>
 
-        <p className="mt-6 flex items-center justify-center gap-2 text-center text-xs text-muted-foreground">
+        <div className="mt-6 rounded-xl border border-border bg-card p-4 text-center">
+          <p className="text-sm text-muted-foreground">Are you an administrator?</p>
+          <Link to="/admin-login" className="mt-1 inline-flex items-center gap-1 text-sm font-medium text-brand hover:underline">
+            <ShieldCheck className="h-3.5 w-3.5" /> Admin login →
+          </Link>
+        </div>
+
+        <p className="mt-4 flex items-center justify-center gap-2 text-center text-xs text-muted-foreground">
           <ShieldCheck className="h-3.5 w-3.5" />
-          The first account created becomes the admin. Subsequent signups are students pending approval.
+          Students must be approved by an admin before accessing assignments.
         </p>
       </div>
     </div>

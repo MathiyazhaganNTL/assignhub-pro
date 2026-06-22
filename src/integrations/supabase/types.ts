@@ -65,6 +65,108 @@ export type Database = {
         }
         Relationships: []
       }
+      assignments: {
+        Row: {
+          id: string
+          title: string
+          description: string | null
+          format: string
+          content: string
+          deadline: string
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          title: string
+          description?: string | null
+          format: string
+          content: string
+          deadline: string
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          title?: string
+          description?: string | null
+          format?: string
+          content?: string
+          deadline?: string
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      submissions: {
+        Row: {
+          id: string
+          assignment_id: string
+          student_id: string
+          format: string
+          content: string
+          submitted_at: string
+        }
+        Insert: {
+          id?: string
+          assignment_id: string
+          student_id: string
+          format: string
+          content: string
+          submitted_at?: string
+        }
+        Update: {
+          id?: string
+          assignment_id?: string
+          student_id?: string
+          format?: string
+          content?: string
+          submitted_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "submissions_assignment_id_fkey"
+            columns: ["assignment_id"]
+            isOneToOne: false
+            referencedRelation: "assignments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "submissions_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
+      notifications: {
+        Row: {
+          id: string
+          user_id: string
+          title: string
+          message: string
+          is_read: boolean
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          title: string
+          message: string
+          is_read?: boolean
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          title?: string
+          message?: string
+          is_read?: boolean
+          created_at?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never

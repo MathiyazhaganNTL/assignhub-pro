@@ -11,6 +11,7 @@ export interface Profile {
   full_name: string | null;
   status: ApprovalStatus;
   rejection_reason: string | null;
+  created_at: string;
 }
 
 interface AuthState {
