@@ -7,6 +7,19 @@
 import { defineConfig } from "@lovable.dev/vite-tanstack-config";
 
 export default defineConfig({
+  nitro: {
+    // Dynamically choose preset based on environment, default to cloudflare-pages
+    preset: process.env.VERCEL
+      ? "vercel"
+      : process.env.NETLIFY
+      ? "netlify"
+      : process.env.NITRO_PRESET || "cloudflare-pages",
+    // Enable pre-rendering to generate static HTML files for cPanel/Amingo.me
+    prerender: {
+      crawlLinks: true,
+      routes: ["/"],
+    },
+  },
   tanstackStart: {
     // Redirect TanStack Start's bundled server entry to src/server.ts (our SSR error wrapper).
     // nitro/vite builds from this
