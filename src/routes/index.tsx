@@ -1,4 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { useRef, useEffect, useState, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import {
   ShieldCheck, ClipboardList, Activity, BarChart3, Bell, Lock,
@@ -154,21 +155,93 @@ const features = [
 ];
 
 function Features() {
+  const trackRef = useRef<HTMLDivElement>(null);
+  const offsetRef = useRef(0);
+  const rafRef = useRef<number>(0);
+  const pausedRef = useRef(false);
+  const [hoveredIdx, setHoveredIdx] = useState<number | null>(null);
+  const SPEED = 0.8; // px per frame — smooth but noticeable flow
+  const CARD_W = 340; // card width + gap
+  const TOTAL_W = features.length * CARD_W;
+
+  const tick = useCallback(() => {
+    if (!pausedRef.current) {
+      offsetRef.current = (offsetRef.current + SPEED) % TOTAL_W;
+      if (trackRef.current) {
+        trackRef.current.style.transform = `translate3d(-${offsetRef.current}px, 0, 0)`;
+      }
+    }
+    rafRef.current = requestAnimationFrame(tick);
+  }, [TOTAL_W]);
+
+  useEffect(() => {
+    rafRef.current = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(rafRef.current);
+  }, [tick]);
+
+  const pause = useCallback(() => { pausedRef.current = true; }, []);
+  const resume = useCallback(() => { pausedRef.current = false; }, []);
+
+  // Triple the cards for seamless loop
+  const tripled = [...features, ...features, ...features];
+
   return (
-    <section id="features" className="border-t border-border bg-surface py-20 sm:py-24">
+    <section id="features" className="border-t border-border bg-surface py-20 sm:py-24 overflow-hidden">
       <div className="mx-auto max-w-7xl px-4 sm:px-6">
         <div className="mx-auto max-w-2xl text-center">
           <h2 className="text-3xl font-bold tracking-tight sm:text-4xl">Everything you need to run assignments</h2>
           <p className="mt-3 text-muted-foreground">Designed around the realities of academic and training programs.</p>
         </div>
-        <div className="mt-12 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-          {features.map((f) => (
-            <div key={f.title} className="group rounded-xl border border-border bg-card p-6 transition hover:-translate-y-0.5 hover:shadow-md">
-              <div className="grid h-10 w-10 place-items-center rounded-lg bg-brand/10 text-brand"><f.icon className="h-5 w-5" /></div>
-              <h3 className="mt-4 text-base font-semibold">{f.title}</h3>
-              <p className="mt-1.5 text-sm text-muted-foreground">{f.desc}</p>
-            </div>
-          ))}
+      </div>
+
+      {/* Carousel viewport */}
+      <div
+        className="relative mt-14"
+        onMouseEnter={pause}
+        onMouseLeave={() => { setHoveredIdx(null); resume(); }}
+        onTouchStart={pause}
+        onTouchEnd={resume}
+      >
+        {/* Edge fade masks */}
+        <div className="pointer-events-none absolute left-0 top-0 z-10 h-full w-20 sm:w-32 bg-gradient-to-r from-[var(--surface)] to-transparent" />
+        <div className="pointer-events-none absolute right-0 top-0 z-10 h-full w-20 sm:w-32 bg-gradient-to-l from-[var(--surface)] to-transparent" />
+
+        {/* Scrolling track */}
+        <div
+          ref={trackRef}
+          className="flex will-change-transform"
+          style={{ width: `${tripled.length * CARD_W}px` }}
+        >
+          {tripled.map((f, i) => {
+            const isHovered = hoveredIdx === i;
+            return (
+              <div
+                key={`${f.title}-${i}`}
+                className="shrink-0 px-3"
+                style={{ width: `${CARD_W}px` }}
+                onMouseEnter={() => setHoveredIdx(i)}
+                onMouseLeave={() => setHoveredIdx(null)}
+              >
+                <div
+                  className={[
+                    "rounded-2xl border bg-card p-7 h-full transition-all duration-300 ease-out",
+                    isHovered
+                      ? "scale-[1.03] shadow-xl shadow-brand/8 border-brand/30"
+                      : "scale-100 shadow-sm border-border",
+                  ].join(" ")}
+                >
+                  <div className={[
+                    "grid h-11 w-11 place-items-center rounded-xl transition-colors duration-300",
+                    isHovered ? "bg-brand text-white" : "bg-brand/10 text-brand",
+                  ].join(" ")}>
+                    <f.icon className="h-5 w-5" />
+                  </div>
+                  <h3 className="mt-5 text-base font-semibold leading-snug">{f.title}</h3>
+                  <p className="mt-2 text-sm text-muted-foreground leading-relaxed">{f.desc}</p>
+                </div>
+              </div>
+            );
+          })}
         </div>
       </div>
     </section>

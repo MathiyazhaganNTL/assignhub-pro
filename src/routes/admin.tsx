@@ -1,4 +1,4 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -29,9 +29,18 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuGroup,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
+import {
   LogOut, Users, ShieldCheck, Clock4, XCircle, CheckCircle2, Search, Loader2,
   Plus, FileText, Link as LinkIcon, Trash2, Edit3, Calendar, FileSpreadsheet,
-  AlertCircle, BarChart3, TrendingUp, CheckCircle, Clock
+  AlertCircle, BarChart3, TrendingUp, CheckCircle, Clock, ChevronDown, User, Settings
 } from "lucide-react";
 
 export const Route = createFileRoute("/admin")({
@@ -41,7 +50,7 @@ export const Route = createFileRoute("/admin")({
 
 function AdminPage() {
   const navigate = useNavigate();
-  const { user, loading, role, signOut } = useAuth();
+  const { user, loading, role, profile, signOut } = useAuth();
 
   useEffect(() => {
     if (loading) return;
@@ -52,6 +61,8 @@ function AdminPage() {
   if (loading || role !== "admin") {
     return <div className="grid min-h-screen place-items-center text-sm text-muted-foreground">Loading…</div>;
   }
+
+  const adminInitials = (profile?.full_name || "A").split(" ").map((w) => w[0]).join("").slice(0, 2).toUpperCase();
 
   return (
     <div className="min-h-screen bg-background">
@@ -64,9 +75,61 @@ function AdminPage() {
               <div className="text-xs text-muted-foreground leading-tight">Administrator</div>
             </div>
           </div>
-          <Button variant="ghost" size="sm" onClick={() => signOut().then(() => navigate({ to: "/", replace: true }))}>
-            <LogOut className="mr-2 h-4 w-4" /> Sign out
-          </Button>
+
+          {/* Admin Profile Dropdown */}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button className="flex items-center gap-2.5 rounded-full p-1 pr-3 hover:bg-muted/60 transition-colors outline-none focus-visible:ring-2 focus-visible:ring-ring" id="admin-profile-trigger">
+                <Avatar className="h-8 w-8 border-2 border-brand/25">
+                  <AvatarImage src={profile?.profile_picture_url || undefined} alt={profile?.full_name || "Admin"} />
+                  <AvatarFallback className="bg-brand/15 text-brand text-xs font-bold">{adminInitials}</AvatarFallback>
+                </Avatar>
+                <div className="hidden sm:block text-left">
+                  <p className="text-xs font-semibold leading-tight truncate max-w-[120px]">{profile?.full_name || "Administrator"}</p>
+                  <p className="text-[10px] text-muted-foreground leading-tight">Super Admin</p>
+                </div>
+                <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" />
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent className="w-72" align="end" sideOffset={8}>
+              {/* Admin Profile Header */}
+              <div className="px-3 py-3">
+                <div className="flex items-center gap-3">
+                  <Avatar className="h-11 w-11 border-2 border-brand/25">
+                    <AvatarImage src={profile?.profile_picture_url || undefined} alt={profile?.full_name || "Admin"} />
+                    <AvatarFallback className="bg-brand/15 text-brand text-sm font-bold">{adminInitials}</AvatarFallback>
+                  </Avatar>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-semibold truncate">{profile?.full_name || "Administrator"}</p>
+                    <p className="text-xs text-muted-foreground truncate">{profile?.email || user?.email}</p>
+                    <Badge variant="secondary" className="mt-1 text-[10px] px-1.5 py-0 h-4 bg-brand/10 text-brand border-none font-semibold">
+                      <ShieldCheck className="h-2.5 w-2.5 mr-0.5" /> Super Administrator
+                    </Badge>
+                  </div>
+                </div>
+              </div>
+              <DropdownMenuSeparator />
+              <DropdownMenuGroup>
+                <DropdownMenuItem asChild className="cursor-pointer">
+                  <Link to="/admin-profile" search={{ edit: false }}>
+                    <User className="h-4 w-4 mr-2" /> My Profile
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild className="cursor-pointer">
+                  <Link to="/admin-profile" search={{ edit: true }}>
+                    <Settings className="h-4 w-4 mr-2" /> Account Settings
+                  </Link>
+                </DropdownMenuItem>
+              </DropdownMenuGroup>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem
+                className="cursor-pointer text-destructive focus:text-destructive focus:bg-destructive/10"
+                onClick={() => signOut().then(() => navigate({ to: "/", replace: true }))}
+              >
+                <LogOut className="h-4 w-4 mr-2" /> Sign Out
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       </header>
       <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6"><AdminDashboard /></main>
