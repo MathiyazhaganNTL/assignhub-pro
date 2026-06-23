@@ -11,6 +11,7 @@ import { Input } from "@/components/ui/input";
 import { PasswordInput } from "@/components/ui/password-input";
 import { Label } from "@/components/ui/label";
 import { ShieldCheck, Loader2, Lock } from "lucide-react";
+import { AdminLoginIllustration } from "@/components/admin-login-illustration";
 
 export const Route = createFileRoute("/admin-login")({
   head: () => ({
@@ -79,10 +80,9 @@ function AdminLoginPage() {
             <p className="mt-1.5 text-sm text-muted-foreground">Sign in with your admin credentials to access the dashboard.</p>
           </div>
 
-          <div className="mb-6 rounded-lg border border-brand/20 bg-brand/5 p-4 text-sm text-brand-foreground/90">
-            <p className="font-semibold mb-1">Demo Admin Credentials:</p>
-            <p>Email: <strong>admin@assignhub.com</strong></p>
-            <p>Password: <strong>password123</strong></p>
+          {/* Animated Illustration */}
+          <div className="mb-4">
+            <AdminLoginIllustration />
           </div>
 
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
@@ -103,18 +103,6 @@ function AdminLoginPage() {
             </Button>
           </form>
         </div>
-
-        <div className="mt-6 rounded-xl border border-border bg-card p-4 text-center">
-          <p className="text-sm text-muted-foreground">Are you a student?</p>
-          <Link to="/auth" search={{ tab: "signup" }} className="mt-1 inline-flex items-center gap-1 text-sm font-medium text-brand hover:underline">
-            Request student access →
-          </Link>
-        </div>
-
-        <p className="mt-4 flex items-center justify-center gap-2 text-center text-xs text-muted-foreground">
-          <ShieldCheck className="h-3.5 w-3.5" />
-          This page is for administrators only. Students should use the student portal.
-        </p>
       </div>
     </div>
   );
