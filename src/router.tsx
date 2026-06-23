@@ -5,8 +5,14 @@ import { routeTree } from "./routeTree.gen";
 export const getRouter = () => {
   const queryClient = new QueryClient();
 
+  const basepath =
+    typeof window !== "undefined" && window.location.pathname.startsWith("/assignhub-pro")
+      ? "/assignhub-pro"
+      : "/";
+
   const router = createRouter({
     routeTree,
+    basepath,
     context: { queryClient },
     scrollRestoration: true,
     defaultPreloadStaleTime: 0,
