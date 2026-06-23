@@ -36,8 +36,8 @@ function Index() {
 function Header() {
   return (
     <header className="sticky top-0 z-40 border-b border-border/60 bg-background/80 backdrop-blur">
-      <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6">
-        <Link to="/" className="flex items-center gap-2">
+      <div className="mx-auto flex h-16 max-w-7xl items-center justify-between gap-2 px-4 sm:px-6 overflow-hidden">
+        <Link to="/" className="flex items-center gap-2 shrink-0">
           <div className="grid h-9 w-9 place-items-center rounded-xl bg-brand text-brand-foreground font-bold">A</div>
           <span className="text-lg font-bold tracking-tight">AssignHub</span>
         </Link>
@@ -46,9 +46,13 @@ function Header() {
           <a href="#how" className="hover:text-foreground">How it works</a>
           <a href="#benefits" className="hover:text-foreground">For institutes</a>
         </nav>
-        <div className="flex items-center gap-2">
-          <Button asChild variant="ghost" size="sm"><Link to="/auth" search={{ tab: "signin" }}><LogIn className="mr-1.5 h-3.5 w-3.5" /> Sign in</Link></Button>
-          <Button asChild size="sm"><Link to="/auth" search={{ tab: "signup" }}><UserPlus className="mr-1.5 h-3.5 w-3.5" /> Request access</Link></Button>
+        <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
+          {/* Full sign-in on sm+, icon-only on xs */}
+          <Button asChild variant="ghost" size="sm" className="hidden sm:inline-flex"><Link to="/auth" search={{ tab: "signin" }}><LogIn className="mr-1.5 h-3.5 w-3.5" /> Sign in</Link></Button>
+          <Button asChild variant="ghost" size="icon" className="sm:hidden h-9 w-9"><Link to="/auth" search={{ tab: "signin" }}><LogIn className="h-4 w-4" /></Link></Button>
+          {/* Full button on sm+, compact on xs */}
+          <Button asChild size="sm" className="hidden sm:inline-flex"><Link to="/auth" search={{ tab: "signup" }}><UserPlus className="mr-1.5 h-3.5 w-3.5" /> Request access</Link></Button>
+          <Button asChild size="sm" className="sm:hidden text-xs px-2.5"><Link to="/auth" search={{ tab: "signup" }}><UserPlus className="mr-1 h-3.5 w-3.5" /> Register</Link></Button>
         </div>
       </div>
     </header>
