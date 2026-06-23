@@ -41,7 +41,7 @@ import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import {
   LogOut, Bell, CheckCircle2, Clock, AlertCircle, FileText,
   Link as LinkIcon, UploadCloud, Loader2, Check, User, Settings,
-  ChevronDown, Phone, ChevronLeft, ChevronRight, ArrowRight,
+  ChevronDown, Phone, ChevronLeft, ChevronRight, ArrowRight, ArrowLeft,
 } from "lucide-react";
 import {
   CoinVaultIcon,
@@ -451,11 +451,17 @@ function GamifiedDashboard() {
       {/* ============ HEADER ============ */}
       <header className="border-b border-border bg-card sticky top-0 z-40">
         <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6">
-          <div className="flex items-center gap-2">
-            <div className="grid h-8 w-8 place-items-center rounded-lg bg-brand text-brand-foreground text-sm font-bold">A</div>
-            <div>
-              <div className="text-sm font-semibold leading-tight">AssignHub</div>
-              <div className="text-xs text-muted-foreground leading-tight">Student Portal</div>
+          <div className="flex items-center gap-4">
+            <Link to="/dashboard" className="inline-flex items-center gap-1.5 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors bg-muted/30 hover:bg-muted py-1.5 px-3 rounded-md">
+              <ArrowLeft className="h-4 w-4" /> Back to Dashboard
+            </Link>
+            <div className="h-5 w-px bg-border hidden sm:block" />
+            <div className="hidden sm:flex items-center gap-2">
+              <div className="grid h-8 w-8 place-items-center rounded-lg bg-brand text-brand-foreground text-sm font-bold shadow-sm">A</div>
+              <div>
+                <div className="text-sm font-semibold leading-tight">AssignHub</div>
+                <div className="text-[10px] text-muted-foreground leading-tight uppercase tracking-wider font-semibold">Student Portal</div>
+              </div>
             </div>
           </div>
           <div className="flex items-center gap-3">
