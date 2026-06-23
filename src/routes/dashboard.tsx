@@ -41,7 +41,7 @@ import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import {
   LogOut, BookOpen, Bell, CheckCircle2, Clock, AlertCircle, FileText,
   Link as LinkIcon, UploadCloud, Loader2, Check, RefreshCw, Sparkles,
-  User, Settings, ChevronDown, Phone, Trophy
+  User, Settings, ChevronDown, Phone, Trophy, Eye, XCircle, Upload
 } from "lucide-react";
 import { CoinVaultIcon } from "@/components/gamification-icons";
 
@@ -67,6 +67,15 @@ interface Submission {
   format: "file" | "text";
   content: string;
   submitted_at: string;
+  status: "submitted" | "under_review" | "approved" | "rejected" | "resubmitted";
+  reviewed_by?: string | null;
+  reviewed_at?: string | null;
+  review_comments?: string | null;
+  approval_points?: number | null;
+  approval_coins?: number | null;
+  reviewer?: {
+    full_name: string | null;
+  } | null;
 }
 
 interface Notification {
@@ -76,6 +85,43 @@ interface Notification {
   message: string;
   is_read: boolean;
   created_at: string;
+}
+
+function SubmissionStatusBadge({ status }: { status: Submission["status"] }) {
+  switch (status) {
+    case "submitted":
+      return (
+        <Badge variant="secondary" className="bg-[#4F7DF3]/15 text-[#4F7DF3] hover:bg-[#4F7DF3]/15 border-none font-semibold flex items-center gap-1">
+          <Upload className="h-3.5 w-3.5" /> Submitted
+        </Badge>
+      );
+    case "under_review":
+      return (
+        <Badge variant="secondary" className="bg-orange-500/15 text-orange-600 hover:bg-orange-500/15 border-none font-semibold flex items-center gap-1">
+          <Eye className="h-3.5 w-3.5" /> Under Review
+        </Badge>
+      );
+    case "approved":
+      return (
+        <Badge variant="secondary" className="bg-success/15 text-success hover:bg-success/15 border-none font-semibold flex items-center gap-1">
+          <CheckCircle2 className="h-3.5 w-3.5" /> Approved
+        </Badge>
+      );
+    case "rejected":
+      return (
+        <Badge variant="secondary" className="bg-destructive/15 text-destructive hover:bg-destructive/15 border-none font-semibold flex items-center gap-1">
+          <XCircle className="h-3.5 w-3.5" /> Rejected
+        </Badge>
+      );
+    case "resubmitted":
+      return (
+        <Badge variant="secondary" className="bg-indigo-500/15 text-indigo-600 hover:bg-indigo-500/15 border-none font-semibold flex items-center gap-1">
+          <RefreshCw className="h-3.5 w-3.5" /> Resubmitted
+        </Badge>
+      );
+    default:
+      return null;
+  }
 }
 
 function StudentDashboard() {
@@ -89,6 +135,18 @@ function StudentDashboard() {
   const [subFormat, setSubFormat] = useState<"file" | "text">("text");
   const [subContent, setSubContent] = useState("");
   const [uploading, setUploading] = useState(false);
+
+  const handleOpenDialog = (a: Assignment, existingSub?: Submission) => {
+    setActiveAssignment(a);
+    if (existingSub) {
+      setSubFormat(existingSub.format);
+      setSubContent(existingSub.content);
+    } else {
+      setSubFormat("text");
+      setSubContent("");
+    }
+    setSubmissionOpen(true);
+  };
 
   // Queries
   const { data: assignments, isLoading: loadingAssignments } = useQuery({
@@ -109,10 +167,10 @@ function StudentDashboard() {
     queryFn: async (): Promise<Submission[]> => {
       const { data, error } = await supabase
         .from("submissions")
-        .select("*")
+        .select("*, reviewer:profiles!submissions_reviewed_by_fkey(full_name)")
         .eq("student_id", user!.id);
       if (error) throw error;
-      return (data ?? []) as Submission[];
+      return (data ?? []) as any[];
     },
     enabled: !!user,
   });
@@ -207,20 +265,40 @@ function StudentDashboard() {
 
   const submitAssignment = useMutation({
     mutationFn: async () => {
-      const payload = {
-        assignment_id: activeAssignment?.id!,
-        student_id: user?.id!,
-        format: subFormat,
-        content: subContent,
-      };
-
-      const { error } = await supabase
-        .from("submissions")
-        .insert(payload);
-      if (error) throw error;
+      const existingSub = submissions?.find((s) => s.assignment_id === activeAssignment?.id);
+      
+      if (existingSub) {
+        const { error } = await supabase
+          .from("submissions")
+          .update({
+            format: subFormat,
+            content: subContent,
+            status: "resubmitted",
+            submitted_at: new Date().toISOString(),
+            reviewed_by: null,
+            reviewed_at: null,
+            review_comments: null,
+            approval_points: null,
+            approval_coins: null,
+          })
+          .eq("id", existingSub.id);
+        if (error) throw error;
+      } else {
+        const { error } = await supabase
+          .from("submissions")
+          .insert({
+            assignment_id: activeAssignment?.id!,
+            student_id: user?.id!,
+            format: subFormat,
+            content: subContent,
+            status: "submitted",
+          });
+        if (error) throw error;
+      }
     },
     onSuccess: () => {
-      toast.success("Assignment submitted successfully!");
+      const existingSub = submissions?.find((s) => s.assignment_id === activeAssignment?.id);
+      toast.success(existingSub ? "Assignment resubmitted successfully!" : "Assignment submitted successfully!");
       qc.invalidateQueries({ queryKey: ["student-submissions"] });
       setSubmissionOpen(false);
       resetForm();
@@ -457,7 +535,7 @@ function StudentDashboard() {
                       <div className="flex items-start justify-between gap-2">
                         <h3 className="font-bold text-base text-foreground leading-snug">{a.title}</h3>
                         {sub ? (
-                          <Badge variant="secondary" className="bg-success/15 text-success hover:bg-success/15 border-none font-semibold"><Check className="h-3 w-3 mr-1" /> Submitted</Badge>
+                          <SubmissionStatusBadge status={sub.status} />
                         ) : isLate ? (
                           <Badge variant="destructive" className="bg-destructive/15 text-destructive hover:bg-destructive/15 border-none font-semibold"><AlertCircle className="h-3 w-3 mr-1" /> Overdue</Badge>
                         ) : (
@@ -470,9 +548,7 @@ function StudentDashboard() {
                       </p>
 
                       {a.format === "rich-text" && (
-                        <div className="mt-4 bg-muted/40 rounded-lg p-3 text-xs border font-medium text-foreground max-h-24 overflow-y-auto whitespace-pre-wrap">
-                          {a.content}
-                        </div>
+                        <div className="mt-4 bg-muted/40 rounded-lg p-3 text-xs border font-medium text-foreground max-h-24 overflow-y-auto whitespace-pre-wrap">{a.content}</div>
                       )}
 
                       {a.format === "link" && (
@@ -490,23 +566,53 @@ function StudentDashboard() {
                           </Button>
                         </div>
                       )}
+
+                      {sub && (
+                        <div className="mt-4 p-3.5 bg-muted/20 border border-border/40 rounded-xl text-xs space-y-2">
+                          <p className="font-bold text-foreground">Review Status</p>
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-2 text-muted-foreground">
+                            <div>
+                              <span className="block text-[10px] uppercase font-bold text-muted-foreground/70 mb-0.5">Status:</span>
+                              <span className="font-semibold text-foreground capitalize text-[13px]">{sub.status.replace('_', ' ')}</span>
+                            </div>
+                            
+                            {sub.reviewed_by && (
+                              <div>
+                                <span className="block text-[10px] uppercase font-bold text-muted-foreground/70 mb-0.5">Reviewed By:</span>
+                                <span className="font-semibold text-foreground text-[13px]">{sub.reviewer?.full_name || "Admin"}</span>
+                              </div>
+                            )}
+                            
+                            {sub.review_comments && (
+                              <div className="sm:col-span-2 mt-1">
+                                <span className="block text-[10px] uppercase font-bold text-muted-foreground/70 mb-1">Comments:</span>
+                                <div className="bg-background border border-border/80 rounded-lg p-2.5 text-foreground font-medium italic whitespace-pre-wrap leading-relaxed">{sub.review_comments}</div>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      )}
                     </div>
 
-                    <div className="mt-6 pt-4 border-t border-border flex items-center justify-between">
+                    <div className="mt-6 pt-4 border-t border-border flex items-center justify-between gap-2">
                       <div className="text-xs text-muted-foreground font-semibold flex items-center gap-1.5">
                         <Clock className="h-3.5 w-3.5" /> Due: {new Date(a.deadline).toLocaleString()}
                       </div>
                       
-                      {!sub && (
+                      {(!sub || sub.status === 'rejected') && (
                         <Dialog open={submissionOpen && activeAssignment?.id === a.id} onOpenChange={(val) => { setSubmissionOpen(val); if(val) setActiveAssignment(a); else resetForm(); }}>
                           <DialogTrigger asChild>
-                            <Button size="sm" variant={isLate ? "destructive" : "default"} onClick={() => { setActiveAssignment(a); setSubmissionOpen(true); }}><UploadCloud className="mr-1.5 h-4 w-4" /> Submit Work</Button>
+                            {sub ? (
+                              <Button size="sm" variant="outline" className="border-destructive text-destructive hover:bg-destructive/10 hover:text-destructive font-semibold shadow-sm" onClick={() => handleOpenDialog(a, sub)}><RefreshCw className="mr-1.5 h-3.5 w-3.5" /> Resubmit Assignment</Button>
+                            ) : (
+                              <Button size="sm" variant={isLate ? "destructive" : "default"} onClick={() => handleOpenDialog(a)}><UploadCloud className="mr-1.5 h-4 w-4" /> Submit Work</Button>
+                            )}
                           </DialogTrigger>
                           <DialogContent className="sm:max-w-md">
                             <DialogHeader>
-                              <DialogTitle>Submit assignment</DialogTitle>
+                              <DialogTitle>{sub ? "Resubmit assignment" : "Submit assignment"}</DialogTitle>
                               <DialogDescription>
-                                Upload your submission response for "{a.title}".
+                                {sub ? `Upload your revised submission response for "${a.title}".` : `Upload your submission response for "${a.title}".`}
                               </DialogDescription>
                             </DialogHeader>
                             <div className="space-y-4 py-2">
@@ -543,7 +649,7 @@ function StudentDashboard() {
                               <Button variant="outline" onClick={() => setSubmissionOpen(false)}>Cancel</Button>
                               <Button onClick={() => submitAssignment.mutate()} disabled={!subContent || submitAssignment.isPending}>
                                 {submitAssignment.isPending && <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />}
-                                Submit
+                                {sub ? "Resubmit" : "Submit"}
                               </Button>
                             </DialogFooter>
                           </DialogContent>

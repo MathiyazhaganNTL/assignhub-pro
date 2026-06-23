@@ -40,7 +40,8 @@ import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import {
   LogOut, Users, ShieldCheck, Clock4, XCircle, CheckCircle2, Search, Loader2,
   Plus, FileText, Link as LinkIcon, Trash2, Edit3, Calendar, FileSpreadsheet,
-  AlertCircle, BarChart3, TrendingUp, CheckCircle, Clock, ChevronDown, User, Settings
+  AlertCircle, BarChart3, TrendingUp, CheckCircle, Clock, ChevronDown, User, Settings,
+  Eye, Upload, RefreshCw
 } from "lucide-react";
 
 export const Route = createFileRoute("/admin")({
@@ -322,6 +323,10 @@ interface Assignment {
   content: string;
   deadline: string;
   created_at: string;
+  subject_id: string | null;
+  assigned_date: string | null;
+  max_coins: number | null;
+  daily_reduction: number | null;
 }
 
 function AssignmentsTab() {
@@ -592,12 +597,33 @@ interface Submission {
   format: "file" | "text";
   content: string;
   submitted_at: string;
+  status: "submitted" | "under_review" | "approved" | "rejected" | "resubmitted";
+  reviewed_by: string | null;
+  reviewed_at: string | null;
+  review_comments: string | null;
+  approval_points: number | null;
+  approval_coins: number | null;
   assignment: Assignment;
   student: Profile;
 }
 
 function SubmissionsTab() {
+  const qc = useQueryClient();
+  const { user } = useAuth();
+  
+  // Modal & Selection States
   const [selectedSub, setSelectedSub] = useState<Submission | null>(null);
+  const [viewOpen, setViewOpen] = useState(false);
+  const [approveOpen, setApproveOpen] = useState(false);
+  const [rejectOpen, setRejectOpen] = useState(false);
+  
+  const [subToApprove, setSubToApprove] = useState<Submission | null>(null);
+  const [subToReject, setSubToReject] = useState<Submission | null>(null);
+  
+  const [approvalPoints, setApprovalPoints] = useState("");
+  const [approvalCoins, setApprovalCoins] = useState("");
+  const [approvalComments, setApprovalComments] = useState("");
+  const [rejectionComments, setRejectionComments] = useState("");
 
   const { data: submissions, isLoading } = useQuery({
     queryKey: ["submissions-admin"],
@@ -611,8 +637,216 @@ function SubmissionsTab() {
     },
   });
 
+  // Calculate stats metrics for cards
+  const metrics = useMemo(() => {
+    const list = submissions ?? [];
+    return {
+      total: list.length,
+      submitted: list.filter(s => s.status === 'submitted').length,
+      underReview: list.filter(s => s.status === 'under_review').length,
+      approved: list.filter(s => s.status === 'approved').length,
+      rejected: list.filter(s => s.status === 'rejected').length,
+      resubmitted: list.filter(s => s.status === 'resubmitted').length,
+    };
+  }, [submissions]);
+
+  // Mutations
+  const startReviewMutation = useMutation({
+    mutationFn: async (submissionId: string) => {
+      const { error } = await supabase
+        .from("submissions")
+        .update({
+          status: "under_review",
+          reviewed_by: user!.id,
+          reviewed_at: new Date().toISOString(),
+        })
+        .eq("id", submissionId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["submissions-admin"] });
+    },
+    onError: (e: any) => {
+      toast.error(`Failed to start review: ${e.message}`);
+    }
+  });
+
+  const approveSubmissionMutation = useMutation({
+    mutationFn: async (args: { id: string; points: number; coins: number; comments: string }) => {
+      const { error } = await supabase
+        .from("submissions")
+        .update({
+          status: "approved",
+          reviewed_by: user!.id,
+          reviewed_at: new Date().toISOString(),
+          review_comments: args.comments.trim() || null,
+          approval_points: args.points,
+          approval_coins: args.coins,
+        })
+        .eq("id", args.id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success("Submission approved successfully!");
+      qc.invalidateQueries({ queryKey: ["submissions-admin"] });
+      setApproveOpen(false);
+      setApprovalPoints("");
+      setApprovalCoins("");
+      setApprovalComments("");
+    },
+    onError: (e: any) => {
+      toast.error(`Approval failed: ${e.message}`);
+    }
+  });
+
+  const rejectSubmissionMutation = useMutation({
+    mutationFn: async (args: { id: string; comments: string }) => {
+      const { error } = await supabase
+        .from("submissions")
+        .update({
+          status: "rejected",
+          reviewed_by: user!.id,
+          reviewed_at: new Date().toISOString(),
+          review_comments: args.comments.trim(),
+          approval_points: null,
+          approval_coins: null,
+        })
+        .eq("id", args.id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success("Submission rejected successfully.");
+      qc.invalidateQueries({ queryKey: ["submissions-admin"] });
+      setRejectOpen(false);
+      setRejectionComments("");
+    },
+    onError: (e: any) => {
+      toast.error(`Rejection failed: ${e.message}`);
+    }
+  });
+
+  // Calculate default coins/points rewards
+  const calculateDefaultRewards = (sub: Submission) => {
+    if (!sub || !sub.assignment) return { coins: 0, points: 50 };
+    const deadline = new Date(sub.assignment.deadline);
+    const assignedDate = new Date(sub.assignment.assigned_date || sub.assignment.created_at);
+    const submittedAt = new Date(sub.submitted_at);
+    
+    // Total days allowed (clamped to at least 1)
+    const daysTotal = Math.max(1, Math.ceil((deadline.getTime() - assignedDate.getTime()) / (1000 * 60 * 60 * 24)));
+    
+    // Max coins
+    const maxCoins = sub.assignment.max_coins ?? 100;
+    
+    // Daily reduction rate
+    const dailyReduction = sub.assignment.daily_reduction ?? Math.max(1, Math.round(maxCoins / daysTotal));
+    
+    // Days elapsed since assigned
+    const daysElapsed = Math.max(0, Math.floor((submittedAt.getTime() - assignedDate.getTime()) / (1000 * 60 * 60 * 24)));
+    
+    // Coins earned
+    const coinsEarned = Math.max(0, maxCoins - (daysElapsed * dailyReduction));
+    
+    // Points earned (base 50 + coin bonus)
+    const pointsEarned = 50 + coinsEarned;
+    
+    return { coins: coinsEarned, points: pointsEarned };
+  };
+
+  const handleViewSubmission = (sub: Submission) => {
+    setSelectedSub(sub);
+    setViewOpen(true);
+    if (sub.status === "submitted" || sub.status === "resubmitted") {
+      startReviewMutation.mutate(sub.id);
+    }
+  };
+
+  const handleOpenApprove = (sub: Submission) => {
+    setSubToApprove(sub);
+    const defaults = calculateDefaultRewards(sub);
+    setApprovalPoints(String(defaults.points));
+    setApprovalCoins(String(defaults.coins));
+    setApprovalComments("");
+    setApproveOpen(true);
+  };
+
+  const handleOpenReject = (sub: Submission) => {
+    setSubToReject(sub);
+    setRejectionComments("");
+    setRejectOpen(true);
+  };
+
+  const handleApproveSubmit = () => {
+    if (!subToApprove) return;
+    const defaults = calculateDefaultRewards(subToApprove);
+    const points = approvalPoints.trim() === "" ? defaults.points : Number(approvalPoints);
+    const coins = approvalCoins.trim() === "" ? defaults.coins : Number(approvalCoins);
+    
+    approveSubmissionMutation.mutate({
+      id: subToApprove.id,
+      points,
+      coins,
+      comments: approvalComments,
+    });
+  };
+
+  const handleRejectSubmit = () => {
+    if (!subToReject || !rejectionComments.trim()) return;
+    rejectSubmissionMutation.mutate({
+      id: subToReject.id,
+      comments: rejectionComments,
+    });
+  };
+
+  const getFileName = (url: string) => {
+    if (!url) return "Attachment File";
+    try {
+      const decoded = decodeURIComponent(url);
+      const lastPart = decoded.split("/").pop() || "";
+      const match = lastPart.match(/^[a-fA-F0-9-]+_[a-fA-F0-9-]+_(\d+)\.(\w+)$/i);
+      if (match) {
+        const ext = match[2].toUpperCase();
+        return `Submitted Document (${ext})`;
+      }
+      const cleanName = lastPart.replace(/^[a-fA-F0-9-]+_[a-fA-F0-9-]+_\d+_/, "");
+      if (cleanName && cleanName.length > 4 && cleanName.includes(".")) {
+        return cleanName;
+      }
+      return lastPart || "Attachment File";
+    } catch (e) {
+      return "Attachment File";
+    }
+  };
+
+  const getStatusBadge = (status: Submission["status"]) => {
+    const activeStatus = status || "submitted";
+    switch (activeStatus) {
+      case "submitted":
+        return <Badge variant="secondary" className="bg-[#4F7DF3]/15 text-[#4F7DF3] hover:bg-[#4F7DF3]/15 border-none font-semibold"><Upload className="h-3 w-3 mr-1" /> Submitted</Badge>;
+      case "under_review":
+        return <Badge variant="secondary" className="bg-orange-500/15 text-orange-600 hover:bg-orange-500/15 border-none font-semibold"><Eye className="h-3 w-3 mr-1" /> Under Review</Badge>;
+      case "approved":
+        return <Badge variant="secondary" className="bg-success/15 text-success hover:bg-success/15 border-none font-semibold"><CheckCircle className="h-3 w-3 mr-1" /> Approved</Badge>;
+      case "rejected":
+        return <Badge variant="secondary" className="bg-destructive/15 text-destructive hover:bg-destructive/15 border-none font-semibold"><XCircle className="h-3 w-3 mr-1" /> Rejected</Badge>;
+      case "resubmitted":
+        return <Badge variant="secondary" className="bg-indigo-500/15 text-indigo-600 hover:bg-indigo-500/15 border-none font-semibold"><RefreshCw className="h-3 w-3 mr-1" /> Resubmitted</Badge>;
+      default:
+        return null;
+    }
+  };
+
   return (
-    <div className="space-y-4">
+    <div className="space-y-6">
+      {/* 5 Status Cards */}
+      <div className="grid gap-3 grid-cols-2 sm:grid-cols-3 lg:grid-cols-5">
+        <StatTile icon={Upload} label="Submitted" value={metrics.submitted} tone="brand" />
+        <StatTile icon={Eye} label="Under Review" value={metrics.underReview} tone="warning" />
+        <StatTile icon={CheckCircle2} label="Approved" value={metrics.approved} tone="success" />
+        <StatTile icon={XCircle} label="Rejected" value={metrics.rejected} tone="destructive" />
+        <StatTile icon={RefreshCw} label="Resubmitted" value={metrics.resubmitted} tone="indigo" />
+      </div>
+
       <div className="flex justify-between items-center">
         <h2 className="text-xl font-bold tracking-tight">Real-time Submission Tracker</h2>
         <Badge variant="outline" className="text-success border-success/40 bg-success/5"><Clock className="mr-1 h-3 w-3" /> Real-time active</Badge>
@@ -627,16 +861,17 @@ function SubmissionsTab() {
                 <TableHead>Assignment</TableHead>
                 <TableHead>Submitted At</TableHead>
                 <TableHead>Delay status</TableHead>
-                <TableHead className="text-right">Submission Content</TableHead>
+                <TableHead>Review Status</TableHead>
+                <TableHead className="text-right">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {isLoading ? (
-                <TableRow><TableCell colSpan={5} className="py-10 text-center text-sm text-muted-foreground"><Loader2 className="mr-2 inline h-4 w-4 animate-spin" />Loading…</TableCell></TableRow>
+                <TableRow><TableCell colSpan={6} className="py-10 text-center text-sm text-muted-foreground"><Loader2 className="mr-2 inline h-4 w-4 animate-spin" />Loading…</TableCell></TableRow>
               ) : submissions?.length === 0 ? (
-                <TableRow><TableCell colSpan={5} className="py-10 text-center text-sm text-muted-foreground">No submissions recorded yet.</TableCell></TableRow>
+                <TableRow><TableCell colSpan={6} className="py-10 text-center text-sm text-muted-foreground">No submissions recorded yet.</TableCell></TableRow>
               ) : submissions?.map((s) => {
-                const isLate = new Date(s.submitted_at) > new Date(s.assignment.deadline);
+                const isLate = new Date(s.submitted_at) > new Date(s.assignment?.deadline);
                 return (
                   <TableRow key={s.id}>
                     <TableCell>
@@ -651,32 +886,37 @@ function SubmissionsTab() {
                       {isLate ? (
                         <Badge variant="destructive" className="bg-destructive/10 text-destructive border-destructive/20">Late Submission</Badge>
                       ) : (
-                        <Badge variant="secondary" className="bg-success/10 text-success hover:bg-success/10 border-success/20">On Time</Badge>
+                        <Badge variant="secondary" className="bg-success/10 text-success hover:bg-success/10 border-success/20 font-semibold">On Time</Badge>
                       )}
                     </TableCell>
+                    <TableCell>
+                      {getStatusBadge(s.status)}
+                    </TableCell>
                     <TableCell className="text-right">
-                      {s.format === "file" ? (
-                        <Button size="sm" variant="outline" asChild>
-                          <a href={s.content} target="_blank" rel="noreferrer"><LinkIcon className="mr-1.5 h-3.5 w-3.5" /> Download File</a>
+                      <div className="flex justify-end gap-2 items-center">
+                        <Button size="sm" variant="outline" onClick={() => handleViewSubmission(s)}>
+                          <Eye className="h-4 w-4 mr-1.5" /> View
                         </Button>
-                      ) : (
-                        <Dialog>
-                          <DialogTrigger asChild>
-                            <Button size="sm" variant="outline" onClick={() => setSelectedSub(s)}>Read Answer</Button>
-                          </DialogTrigger>
-                          <DialogContent>
-                            <DialogHeader>
-                              <DialogTitle>Submission Answer</DialogTitle>
-                              <DialogDescription>
-                                Submitted by {selectedSub?.student?.full_name} for "{selectedSub?.assignment?.title}"
-                              </DialogDescription>
-                            </DialogHeader>
-                            <div className="border rounded-lg p-4 bg-muted/40 max-h-96 overflow-y-auto whitespace-pre-wrap text-sm text-foreground font-mono">
-                              {selectedSub?.content}
-                            </div>
-                          </DialogContent>
-                        </Dialog>
-                      )}
+                        
+                        {(s.status === 'submitted' || s.status === 'under_review' || s.status === 'resubmitted') && (
+                          <>
+                            <Button size="sm" className="bg-success text-success-foreground hover:bg-success/90 font-semibold shadow-sm" onClick={() => handleOpenApprove(s)}>
+                              Approve
+                            </Button>
+                            <Button size="sm" variant="destructive" className="font-semibold shadow-sm" onClick={() => handleOpenReject(s)}>
+                              Reject
+                            </Button>
+                          </>
+                        )}
+                        
+                        {s.status === 'approved' && (
+                          <span className="text-xs font-bold text-success pr-2">+{s.approval_points} pts / +{s.approval_coins} coins</span>
+                        )}
+                        
+                        {s.status === 'rejected' && (
+                          <span className="text-xs font-bold text-destructive pr-2">Revision Required</span>
+                        )}
+                      </div>
                     </TableCell>
                   </TableRow>
                 );
@@ -685,6 +925,203 @@ function SubmissionsTab() {
           </Table>
         </div>
       </div>
+
+      {/* 1. VIEW SUBMISSION MODAL */}
+      <Dialog open={viewOpen} onOpenChange={setViewOpen}>
+        <DialogContent className="sm:max-w-xl">
+          <DialogHeader>
+            <DialogTitle>View Submission Detail</DialogTitle>
+            <DialogDescription>
+              Review the student's answer text or file submission content.
+            </DialogDescription>
+          </DialogHeader>
+          {selectedSub && (
+            <div className="space-y-4 py-2.5">
+              <div className="grid grid-cols-2 gap-4 text-xs">
+                <div>
+                  <span className="block font-bold text-muted-foreground/80 mb-0.5 uppercase tracking-wide">Student</span>
+                  <span className="font-semibold text-foreground text-[13px]">{selectedSub.student?.full_name || "—"}</span>
+                  <span className="block text-muted-foreground mt-0.5">{selectedSub.student?.email}</span>
+                </div>
+                <div>
+                  <span className="block font-bold text-muted-foreground/80 mb-0.5 uppercase tracking-wide">Assignment</span>
+                  <span className="font-semibold text-foreground text-[13px]">{selectedSub.assignment?.title}</span>
+                </div>
+                <div>
+                  <span className="block font-bold text-muted-foreground/80 mb-0.5 uppercase tracking-wide">Submitted At</span>
+                  <span className="font-semibold text-foreground">{new Date(selectedSub.submitted_at).toLocaleString()}</span>
+                </div>
+                <div>
+                  <span className="block font-bold text-muted-foreground/80 mb-0.5 uppercase tracking-wide">Status</span>
+                  <div className="mt-1">{getStatusBadge(selectedSub.status)}</div>
+                </div>
+              </div>
+
+              <div className="space-y-1.5 pt-2 border-t border-border">
+                <span className="text-xs font-bold text-muted-foreground/80 uppercase tracking-wide">Submission Response</span>
+                {selectedSub.format === "file" ? (
+                  <div className="border border-border/80 rounded-xl p-4 bg-muted/20 flex flex-col sm:flex-row items-center justify-between gap-3 w-full overflow-hidden">
+                    <div className="flex items-center gap-2.5 min-w-0 w-full sm:w-auto flex-1">
+                      <FileText className="h-8 w-8 text-brand shrink-0" />
+                      <div className="min-w-0 flex-1">
+                        <p className="text-xs font-semibold truncate">{getFileName(selectedSub.content)}</p>
+                        <p className="text-[10px] text-muted-foreground truncate block" title={selectedSub.content}>{selectedSub.content}</p>
+                      </div>
+                    </div>
+                    <Button size="sm" variant="outline" asChild className="shrink-0 font-semibold w-full sm:w-auto mt-2 sm:mt-0">
+                      <a href={selectedSub.content} target="_blank" rel="noreferrer"><LinkIcon className="mr-1.5 h-3.5 w-3.5" /> Download File</a>
+                    </Button>
+                  </div>
+                ) : (
+                  <div className="border border-border/80 rounded-xl p-4 bg-muted/20 max-h-60 overflow-y-auto whitespace-pre-wrap text-sm text-foreground font-mono leading-relaxed">
+                    {selectedSub.content}
+                  </div>
+                )}
+              </div>
+
+              {/* Review History / Feedback */}
+              {(selectedSub.status === "approved" || selectedSub.status === "rejected" || selectedSub.review_comments) && (
+                <div className="space-y-2 pt-3 border-t border-border">
+                  <span className="text-xs font-bold text-muted-foreground/80 uppercase tracking-wide">Review & Feedback</span>
+                  <div className="p-3 bg-muted/40 border border-border/60 rounded-xl text-xs space-y-2">
+                    <div className="grid grid-cols-2 gap-y-1">
+                      <div className="text-muted-foreground">Reviewed At:</div>
+                      <div className="font-semibold text-foreground">{selectedSub.reviewed_at ? new Date(selectedSub.reviewed_at).toLocaleString() : "—"}</div>
+                      
+                      {selectedSub.status === "approved" && (
+                        <>
+                          <div className="text-muted-foreground">Points Awarded:</div>
+                          <div className="font-semibold text-success">+{selectedSub.approval_points} Points</div>
+                          <div className="text-muted-foreground">Coins Awarded:</div>
+                          <div className="font-semibold text-success">+{selectedSub.approval_coins} Coins</div>
+                        </>
+                      )}
+                    </div>
+                    {selectedSub.review_comments && (
+                      <div className="pt-2 border-t border-border/60">
+                        <span className="block text-[10px] font-bold text-muted-foreground uppercase mb-0.5">Review Comments:</span>
+                        <p className="font-medium text-foreground italic whitespace-pre-wrap leading-relaxed">{selectedSub.review_comments}</p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+          <DialogFooter>
+            <Button onClick={() => setViewOpen(false)}>Close</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* 2. APPROVE SUBMISSION MODAL */}
+      <Dialog open={approveOpen} onOpenChange={setApproveOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Approve Submission</DialogTitle>
+            <DialogDescription>
+              Award coins, points, and add review comments for this submission.
+            </DialogDescription>
+          </DialogHeader>
+          {subToApprove && (
+            <div className="space-y-4 py-2">
+              <div className="p-3 bg-muted/20 border border-border/40 rounded-xl text-xs space-y-1">
+                <div className="font-semibold text-foreground text-[13px]">{subToApprove.student?.full_name}</div>
+                <div className="text-muted-foreground">Assignment: {subToApprove.assignment?.title}</div>
+                <div className="text-muted-foreground">Submitted: {new Date(subToApprove.submitted_at).toLocaleString()}</div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-1.5">
+                  <label className="text-sm font-semibold">Points Awarded</label>
+                  <Input
+                    type="number"
+                    value={approvalPoints}
+                    onChange={(e) => setApprovalPoints(e.target.value)}
+                    placeholder={`Auto: ${calculateDefaultRewards(subToApprove).points}`}
+                  />
+                  <p className="text-[10px] text-muted-foreground">Empty defaults to auto-calculated.</p>
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-sm font-semibold">Coins Awarded</label>
+                  <Input
+                    type="number"
+                    value={approvalCoins}
+                    onChange={(e) => setApprovalCoins(e.target.value)}
+                    placeholder={`Auto: ${calculateDefaultRewards(subToApprove).coins}`}
+                  />
+                  <p className="text-[10px] text-muted-foreground">Empty defaults to auto-calculated.</p>
+                </div>
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-sm font-semibold">Review Comments (Optional)</label>
+                <Textarea
+                  value={approvalComments}
+                  onChange={(e) => setApprovalComments(e.target.value)}
+                  placeholder="e.g. Excellent solution structure and clear documentation!"
+                  rows={3}
+                />
+              </div>
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setApproveOpen(false)}>Cancel</Button>
+            <Button
+              onClick={handleApproveSubmit}
+              disabled={approveSubmissionMutation.isPending}
+              className="bg-success text-success-foreground hover:bg-success/90 font-semibold"
+            >
+              {approveSubmissionMutation.isPending && <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />}
+              Approve Submission
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* 3. REJECT SUBMISSION MODAL */}
+      <Dialog open={rejectOpen} onOpenChange={setRejectOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Reject Submission</DialogTitle>
+            <DialogDescription>
+              Return the submission to the student for improvement. Comments are mandatory.
+            </DialogDescription>
+          </DialogHeader>
+          {subToReject && (
+            <div className="space-y-4 py-2">
+              <div className="p-3 bg-muted/20 border border-border/40 rounded-xl text-xs space-y-1">
+                <div className="font-semibold text-foreground text-[13px]">{subToReject.student?.full_name}</div>
+                <div className="text-muted-foreground">Assignment: {subToReject.assignment?.title}</div>
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-sm font-semibold">Review Comments <span className="text-destructive">*</span></label>
+                <Textarea
+                  value={rejectionComments}
+                  onChange={(e) => setRejectionComments(e.target.value)}
+                  placeholder="e.g. Database explanation incomplete. Please add normalization examples and resubmit."
+                  rows={4}
+                  required
+                />
+                <p className="text-[10px] text-muted-foreground">Describe what the student needs to correct.</p>
+              </div>
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setRejectOpen(false)}>Cancel</Button>
+            <Button
+              onClick={handleRejectSubmit}
+              disabled={!rejectionComments.trim() || rejectSubmissionMutation.isPending}
+              variant="destructive"
+              className="font-semibold"
+            >
+              {rejectSubmissionMutation.isPending && <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />}
+              Reject Submission
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
@@ -764,8 +1201,28 @@ function AnalyticsTab() {
     };
   }, [students, assignments, submissions]);
 
+  const statusCounts = useMemo(() => {
+    const list = submissions ?? [];
+    return {
+      submitted: list.filter(s => s.status === 'submitted').length,
+      underReview: list.filter(s => s.status === 'under_review').length,
+      approved: list.filter(s => s.status === 'approved').length,
+      rejected: list.filter(s => s.status === 'rejected').length,
+      resubmitted: list.filter(s => s.status === 'resubmitted').length,
+    };
+  }, [submissions]);
+
   return (
     <div className="space-y-6">
+      {/* 5 Status Cards */}
+      <div className="grid gap-3 grid-cols-2 sm:grid-cols-3 lg:grid-cols-5">
+        <StatTile icon={Upload} label="Submitted" value={statusCounts.submitted} tone="brand" />
+        <StatTile icon={Eye} label="Under Review" value={statusCounts.underReview} tone="warning" />
+        <StatTile icon={CheckCircle2} label="Approved" value={statusCounts.approved} tone="success" />
+        <StatTile icon={XCircle} label="Rejected" value={statusCounts.rejected} tone="destructive" />
+        <StatTile icon={RefreshCw} label="Resubmitted" value={statusCounts.resubmitted} tone="indigo" />
+      </div>
+
       <div className="grid gap-4 sm:grid-cols-3">
         <div className="rounded-xl border border-border bg-card p-5">
           <div className="flex items-center justify-between">
@@ -854,13 +1311,13 @@ function AnalyticsTab() {
   );
 }
 
-// Stats helper component
-function StatTile({ icon: Icon, label, value, tone }: { icon: typeof Users; label: string; value: number; tone: "brand" | "warning" | "success" | "destructive" }) {
+function StatTile({ icon: Icon, label, value, tone }: { icon: any; label: string; value: number; tone: "brand" | "warning" | "success" | "destructive" | "indigo" }) {
   const toneClass = {
     brand: "text-brand bg-brand/10",
     warning: "text-[oklch(0.55_0.13_75)] bg-warning/20",
     success: "text-[oklch(0.5_0.13_152)] bg-success/15",
     destructive: "text-destructive bg-destructive/10",
+    indigo: "text-indigo-600 bg-indigo-500/10",
   }[tone];
   return (
     <div className="rounded-xl border border-border bg-card p-5">
