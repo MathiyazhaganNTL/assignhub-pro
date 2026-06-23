@@ -14,8 +14,10 @@ GRANT SELECT, INSERT, UPDATE, DELETE ON public.subjects TO authenticated;
 GRANT ALL ON public.subjects TO service_role;
 ALTER TABLE public.subjects ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "Anyone authenticated can view subjects" ON public.subjects;
 CREATE POLICY "Anyone authenticated can view subjects" ON public.subjects
   FOR SELECT TO authenticated USING (true);
+DROP POLICY IF EXISTS "Admins can manage subjects" ON public.subjects;
 CREATE POLICY "Admins can manage subjects" ON public.subjects
   FOR ALL TO authenticated USING (public.has_role(auth.uid(), 'admin'));
 
@@ -47,12 +49,16 @@ GRANT SELECT, INSERT, UPDATE, DELETE ON public.user_points TO authenticated;
 GRANT ALL ON public.user_points TO service_role;
 ALTER TABLE public.user_points ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "Users can view all points" ON public.user_points;
 CREATE POLICY "Users can view all points" ON public.user_points
   FOR SELECT TO authenticated USING (true);
+DROP POLICY IF EXISTS "System can manage points" ON public.user_points;
 CREATE POLICY "System can manage points" ON public.user_points
   FOR ALL TO service_role USING (true);
+DROP POLICY IF EXISTS "Users can insert own points" ON public.user_points;
 CREATE POLICY "Users can insert own points" ON public.user_points
   FOR INSERT TO authenticated WITH CHECK (auth.uid() = user_id);
+DROP POLICY IF EXISTS "Users can update own points" ON public.user_points;
 CREATE POLICY "Users can update own points" ON public.user_points
   FOR UPDATE TO authenticated USING (auth.uid() = user_id);
 
@@ -69,12 +75,16 @@ GRANT SELECT, INSERT, UPDATE, DELETE ON public.user_coins TO authenticated;
 GRANT ALL ON public.user_coins TO service_role;
 ALTER TABLE public.user_coins ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "Users can view all coins" ON public.user_coins;
 CREATE POLICY "Users can view all coins" ON public.user_coins
   FOR SELECT TO authenticated USING (true);
+DROP POLICY IF EXISTS "System can manage coins" ON public.user_coins;
 CREATE POLICY "System can manage coins" ON public.user_coins
   FOR ALL TO service_role USING (true);
+DROP POLICY IF EXISTS "Users can insert own coins" ON public.user_coins;
 CREATE POLICY "Users can insert own coins" ON public.user_coins
   FOR INSERT TO authenticated WITH CHECK (auth.uid() = user_id);
+DROP POLICY IF EXISTS "Users can update own coins" ON public.user_coins;
 CREATE POLICY "Users can update own coins" ON public.user_coins
   FOR UPDATE TO authenticated USING (auth.uid() = user_id);
 
@@ -92,6 +102,7 @@ GRANT SELECT ON public.achievements TO authenticated;
 GRANT ALL ON public.achievements TO service_role;
 ALTER TABLE public.achievements ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "Anyone authenticated can view achievements" ON public.achievements;
 CREATE POLICY "Anyone authenticated can view achievements" ON public.achievements
   FOR SELECT TO authenticated USING (true);
 
@@ -116,8 +127,10 @@ GRANT SELECT, INSERT ON public.user_achievements TO authenticated;
 GRANT ALL ON public.user_achievements TO service_role;
 ALTER TABLE public.user_achievements ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "Users can view own achievements" ON public.user_achievements;
 CREATE POLICY "Users can view own achievements" ON public.user_achievements
   FOR SELECT TO authenticated USING (auth.uid() = user_id);
+DROP POLICY IF EXISTS "Users can insert own achievements" ON public.user_achievements;
 CREATE POLICY "Users can insert own achievements" ON public.user_achievements
   FOR INSERT TO authenticated WITH CHECK (auth.uid() = user_id);
 
@@ -135,8 +148,10 @@ GRANT SELECT, INSERT ON public.activity_logs TO authenticated;
 GRANT ALL ON public.activity_logs TO service_role;
 ALTER TABLE public.activity_logs ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "Users can view own activity" ON public.activity_logs;
 CREATE POLICY "Users can view own activity" ON public.activity_logs
   FOR SELECT TO authenticated USING (auth.uid() = user_id);
+DROP POLICY IF EXISTS "Users can insert own activity" ON public.activity_logs;
 CREATE POLICY "Users can insert own activity" ON public.activity_logs
   FOR INSERT TO authenticated WITH CHECK (auth.uid() = user_id);
 
@@ -199,6 +214,7 @@ BEGIN
 END;
 $$;
 
+DROP TRIGGER IF EXISTS on_submission_award_points ON public.submissions;
 CREATE TRIGGER on_submission_award_points
 AFTER INSERT ON public.submissions
 FOR EACH ROW EXECUTE FUNCTION public.award_submission_points();
