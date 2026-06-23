@@ -8,6 +8,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth-context";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { PasswordInput } from "@/components/ui/password-input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { ShieldCheck, Loader2, UserPlus, LogIn } from "lucide-react";
@@ -125,7 +126,7 @@ function SignInForm({ onDone }: { onDone: () => Promise<void> }) {
       </div>
       <div className="space-y-1.5">
         <Label htmlFor="si-password">Password</Label>
-        <Input id="si-password" type="password" autoComplete="current-password" {...register("password")} />
+        <PasswordInput id="si-password" autoComplete="current-password" {...register("password")} />
         {errors.password && <p className="text-xs text-destructive">{errors.password.message}</p>}
       </div>
       <Button type="submit" className="w-full" disabled={isSubmitting}>
@@ -180,7 +181,7 @@ function SignUpForm({ onDone, switchToSignIn }: { onDone: () => Promise<void>; s
       </div>
       <div className="space-y-1.5">
         <Label htmlFor="su-password">Password</Label>
-        <Input id="su-password" type="password" autoComplete="new-password" placeholder="At least 6 characters" {...register("password")} />
+        <PasswordInput id="su-password" autoComplete="new-password" placeholder="At least 6 characters" {...register("password")} />
         {errors.password && <p className="text-xs text-destructive">{errors.password.message}</p>}
       </div>
       <Button type="submit" className="w-full" disabled={isSubmitting}>

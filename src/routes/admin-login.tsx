@@ -8,6 +8,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth-context";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { PasswordInput } from "@/components/ui/password-input";
 import { Label } from "@/components/ui/label";
 import { ShieldCheck, Loader2, Lock } from "lucide-react";
 
@@ -92,7 +93,7 @@ function AdminLoginPage() {
             </div>
             <div className="space-y-1.5">
               <Label htmlFor="admin-password">Password</Label>
-              <Input id="admin-password" type="password" autoComplete="current-password" placeholder="Enter your password" {...register("password")} />
+              <PasswordInput id="admin-password" autoComplete="current-password" placeholder="Enter your password" {...register("password")} />
               {errors.password && <p className="text-xs text-destructive">{errors.password.message}</p>}
             </div>
             <Button type="submit" className="w-full" disabled={isSubmitting}>
