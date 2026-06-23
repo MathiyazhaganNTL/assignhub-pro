@@ -8,7 +8,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
-import { Progress } from "@/components/ui/progress";
 import {
   Popover,
   PopoverContent,
@@ -35,7 +34,6 @@ import {
   DropdownMenuContent,
   DropdownMenuGroup,
   DropdownMenuItem,
-  DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
@@ -43,7 +41,7 @@ import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import {
   LogOut, BookOpen, Bell, CheckCircle2, Clock, AlertCircle, FileText,
   Link as LinkIcon, UploadCloud, Loader2, Check, RefreshCw, Sparkles,
-  User, Settings, ChevronDown, Phone
+  User, Settings, ChevronDown, Phone, Trophy
 } from "lucide-react";
 
 export const Route = createFileRoute("/dashboard")({
@@ -131,6 +129,19 @@ function StudentDashboard() {
     enabled: !!user,
   });
 
+  const { data: userCoins } = useQuery({
+    queryKey: ["user-coins"],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("user_coins")
+        .select("*")
+        .eq("user_id", user!.id)
+        .maybeSingle();
+      return data ?? { total_coins: 0, coin_level: 0 };
+    },
+    enabled: !!user,
+  });
+
   // Real-time postgres subscriptions
   useEffect(() => {
     if (!user) return;
@@ -157,6 +168,11 @@ function StudentDashboard() {
         "postgres_changes",
         { event: "*", schema: "public", table: "submissions", filter: `student_id=eq.${user.id}` },
         () => { qc.invalidateQueries({ queryKey: ["student-submissions"] }); }
+      )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "user_coins", filter: `user_id=eq.${user.id}` },
+        () => { qc.invalidateQueries({ queryKey: ["user-coins"] }); }
       )
       .subscribe();
 
@@ -392,8 +408,22 @@ function StudentDashboard() {
               <CheckCircle2 className="h-4 w-4" /> Account Approved & Access Granted
             </p>
           </div>
-          <div className="flex gap-2">
-            <Button size="sm" variant="outline" onClick={() => { qc.invalidateQueries(); toast.success("Refreshed data!"); }}><RefreshCw className="h-3.5 w-3.5 mr-1.5" /> Refresh</Button>
+          <div className="flex flex-col sm:flex-row gap-3">
+            <div className="flex items-center gap-2 bg-background border border-border rounded-lg px-4 py-2 shadow-sm">
+              <span className="text-xl">💰</span>
+              <div>
+                <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-wider">Overall Coins</p>
+                <p className="text-lg font-extrabold leading-none text-[#E8A838]">{userCoins?.total_coins || 0}</p>
+              </div>
+            </div>
+            <Button size="default" variant="default" className="bg-brand text-brand-foreground font-semibold" asChild>
+              <Link to="/student/rewards">
+                <Trophy className="h-4 w-4 mr-2" /> View Gamified Dashboard
+              </Link>
+            </Button>
+            <Button size="icon" variant="outline" onClick={() => { qc.invalidateQueries(); toast.success("Refreshed data!"); }} title="Refresh">
+              <RefreshCw className="h-4 w-4" />
+            </Button>
           </div>
         </div>
 

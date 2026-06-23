@@ -16,6 +16,7 @@ import { Route as AdminProfileRouteImport } from './routes/admin-profile'
 import { Route as AdminLoginRouteImport } from './routes/admin-login'
 import { Route as AdminRouteImport } from './routes/admin'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as StudentRewardsRouteImport } from './routes/student.rewards'
 import { Route as StudentProfileRouteImport } from './routes/student.profile'
 
 const PendingRoute = PendingRouteImport.update({
@@ -53,6 +54,11 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const StudentRewardsRoute = StudentRewardsRouteImport.update({
+  id: '/student/rewards',
+  path: '/student/rewards',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const StudentProfileRoute = StudentProfileRouteImport.update({
   id: '/student/profile',
   path: '/student/profile',
@@ -68,6 +74,7 @@ export interface FileRoutesByFullPath {
   '/dashboard': typeof DashboardRoute
   '/pending': typeof PendingRoute
   '/student/profile': typeof StudentProfileRoute
+  '/student/rewards': typeof StudentRewardsRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -78,6 +85,7 @@ export interface FileRoutesByTo {
   '/dashboard': typeof DashboardRoute
   '/pending': typeof PendingRoute
   '/student/profile': typeof StudentProfileRoute
+  '/student/rewards': typeof StudentRewardsRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -89,6 +97,7 @@ export interface FileRoutesById {
   '/dashboard': typeof DashboardRoute
   '/pending': typeof PendingRoute
   '/student/profile': typeof StudentProfileRoute
+  '/student/rewards': typeof StudentRewardsRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -101,6 +110,7 @@ export interface FileRouteTypes {
     | '/dashboard'
     | '/pending'
     | '/student/profile'
+    | '/student/rewards'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -111,6 +121,7 @@ export interface FileRouteTypes {
     | '/dashboard'
     | '/pending'
     | '/student/profile'
+    | '/student/rewards'
   id:
     | '__root__'
     | '/'
@@ -121,6 +132,7 @@ export interface FileRouteTypes {
     | '/dashboard'
     | '/pending'
     | '/student/profile'
+    | '/student/rewards'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -132,6 +144,7 @@ export interface RootRouteChildren {
   DashboardRoute: typeof DashboardRoute
   PendingRoute: typeof PendingRoute
   StudentProfileRoute: typeof StudentProfileRoute
+  StudentRewardsRoute: typeof StudentRewardsRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -185,6 +198,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/student/rewards': {
+      id: '/student/rewards'
+      path: '/student/rewards'
+      fullPath: '/student/rewards'
+      preLoaderRoute: typeof StudentRewardsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/student/profile': {
       id: '/student/profile'
       path: '/student/profile'
@@ -204,6 +224,7 @@ const rootRouteChildren: RootRouteChildren = {
   DashboardRoute: DashboardRoute,
   PendingRoute: PendingRoute,
   StudentProfileRoute: StudentProfileRoute,
+  StudentRewardsRoute: StudentRewardsRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

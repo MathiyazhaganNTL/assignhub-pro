@@ -99,6 +99,10 @@ export type Database = {
           deadline: string
           created_at: string
           updated_at: string
+          subject_id: string | null
+          assigned_date: string | null
+          max_coins: number | null
+          daily_reduction: number | null
         }
         Insert: {
           id?: string
@@ -109,6 +113,10 @@ export type Database = {
           deadline: string
           created_at?: string
           updated_at?: string
+          subject_id?: string | null
+          assigned_date?: string | null
+          max_coins?: number | null
+          daily_reduction?: number | null
         }
         Update: {
           id?: string
@@ -119,6 +127,10 @@ export type Database = {
           deadline?: string
           created_at?: string
           updated_at?: string
+          subject_id?: string | null
+          assigned_date?: string | null
+          max_coins?: number | null
+          daily_reduction?: number | null
         }
         Relationships: []
       }
@@ -191,9 +203,163 @@ export type Database = {
         }
         Relationships: []
       }
+      subjects: {
+        Row: {
+          id: string
+          name: string
+          code: string
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          name: string
+          code: string
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          name?: string
+          code?: string
+          created_at?: string
+        }
+        Relationships: []
+      }
+      user_points: {
+        Row: {
+          id: string
+          user_id: string
+          total_points: number
+          current_level: number
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          total_points?: number
+          current_level?: number
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          total_points?: number
+          current_level?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      user_coins: {
+        Row: {
+          id: string
+          user_id: string
+          total_coins: number
+          coin_level: number
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          total_coins?: number
+          coin_level?: number
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          total_coins?: number
+          coin_level?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      achievements: {
+        Row: {
+          id: string
+          title: string
+          description: string
+          icon: string
+          points_reward: number
+          coins_reward: number
+        }
+        Insert: {
+          id?: string
+          title: string
+          description: string
+          icon?: string
+          points_reward?: number
+          coins_reward?: number
+        }
+        Update: {
+          id?: string
+          title?: string
+          description?: string
+          icon?: string
+          points_reward?: number
+          coins_reward?: number
+        }
+        Relationships: []
+      }
+      user_achievements: {
+        Row: {
+          id: string
+          user_id: string
+          achievement_id: string
+          earned_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          achievement_id: string
+          earned_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          achievement_id?: string
+          earned_at?: string
+        }
+        Relationships: []
+      }
+      activity_logs: {
+        Row: {
+          id: string
+          user_id: string
+          action: string
+          reference_type: string | null
+          reference_id: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          action: string
+          reference_type?: string | null
+          reference_id?: string | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          action?: string
+          reference_type?: string | null
+          reference_id?: string | null
+          created_at?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
-      [_ in never]: never
+      leaderboard: {
+        Row: {
+          user_id: string
+          name: string | null
+          total_points: number
+          rank: number
+        }
+        Insert: never
+        Update: never
+        Relationships: []
+      }
     }
     Functions: {
       has_role: {
