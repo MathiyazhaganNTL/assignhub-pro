@@ -48,10 +48,6 @@ function AdminLoginPage() {
   const { register, handleSubmit, formState: { errors, isSubmitting } } =
     useForm<z.infer<typeof signInSchema>>({ 
       resolver: zodResolver(signInSchema),
-      defaultValues: {
-        email: "admin@assignhub.com",
-        password: "password123",
-      }
     });
 
   const onSubmit = async (data: z.infer<typeof signInSchema>) => {
