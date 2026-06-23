@@ -43,6 +43,7 @@ import {
   Link as LinkIcon, UploadCloud, Loader2, Check, RefreshCw, Sparkles,
   User, Settings, ChevronDown, Phone, Trophy
 } from "lucide-react";
+import { CoinVaultIcon } from "@/components/gamification-icons";
 
 export const Route = createFileRoute("/dashboard")({
   head: () => ({ meta: [{ title: "Dashboard — AssignHub" }] }),
@@ -410,7 +411,7 @@ function StudentDashboard() {
           </div>
           <div className="flex flex-col sm:flex-row gap-3">
             <div className="flex items-center gap-2 bg-background border border-border rounded-lg px-4 py-2 shadow-sm">
-              <span className="text-xl">💰</span>
+              <CoinVaultIcon className="w-10 h-10" />
               <div>
                 <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-wider">Overall Coins</p>
                 <p className="text-lg font-extrabold leading-none text-[#E8A838]">{userCoins?.total_coins || 0}</p>

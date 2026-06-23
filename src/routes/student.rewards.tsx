@@ -43,6 +43,15 @@ import {
   Link as LinkIcon, UploadCloud, Loader2, Check, User, Settings,
   ChevronDown, Phone, ChevronLeft, ChevronRight, ArrowRight,
 } from "lucide-react";
+import {
+  CoinVaultIcon,
+  ClipboardCheckIcon,
+  FlameIcon,
+  CoinStackIcon,
+  GiftIcon,
+  RankTrophyIcon,
+  getAnimatedAchievementIcon,
+} from "@/components/gamification-icons";
 
 export const Route = createFileRoute("/student/rewards")({
   head: () => ({ meta: [{ title: "Gamified Dashboard — AssignHub" }] }),
@@ -128,16 +137,7 @@ function getCoinRingFill(totalCoins: number) {
   return (totalCoins % 50) / 50;
 }
 
-function getAchievementIcon(icon: string) {
-  const icons: Record<string, string> = {
-    sunrise: "🌅",
-    flame: "🔥",
-    target: "🎯",
-    trophy: "🏆",
-    star: "⭐",
-  };
-  return icons[icon] || "🏅";
-}
+// Achievement icon resolver — now uses animated SVG icons via getAnimatedAchievementIcon
 
 function getDaysInMonth(year: number, month: number) {
   return new Date(year, month + 1, 0).getDate();
@@ -592,9 +592,9 @@ function GamifiedDashboard() {
             <div className="rounded-2xl border border-border bg-card p-5">
               <h2 className="text-base font-bold mb-4">Today Summary</h2>
               <div className="grid grid-cols-3 gap-4">
-                <MiniStat icon="📋" label="Assignments Completed" value={todaySubmissions} />
-                <MiniStat icon="🔥" label="Streak" value={`${streak} days`} />
-                <MiniStat icon="💰" label="Coins Earned Today" value={todaySubmissions * 20} />
+                <MiniStat icon={<ClipboardCheckIcon size={22} />} label="Assignments Completed" value={todaySubmissions} />
+                <MiniStat icon={<FlameIcon size={22} />} label="Streak" value={`${streak} days`} />
+                <MiniStat icon={<CoinStackIcon size={22} />} label="Coins Earned Today" value={todaySubmissions * 20} />
               </div>
             </div>
 
@@ -605,9 +605,12 @@ function GamifiedDashboard() {
                 {(allAchievements ?? []).map((ach) => {
                   const earned = earnedAchievements?.some((ea: any) => ea.achievement_id === ach.id);
                   return (
-                    <div key={ach.id} className={`rounded-xl border p-4 text-center transition-all ${earned ? "border-brand/30 bg-brand/5" : "border-border bg-muted/30 opacity-60"}`}>
-                      <div className="mx-auto grid h-12 w-12 place-items-center rounded-full bg-background text-2xl border border-border shadow-sm">
-                        {getAchievementIcon(ach.icon)}
+                    <div
+                      key={ach.id}
+                      className={`rounded-xl border p-4 text-center transition-all duration-250 hover:scale-[1.02] hover:shadow-md hover:border-brand/30 ${earned ? "border-brand/30 bg-brand/5" : "border-border bg-muted/30 opacity-60"}`}
+                    >
+                      <div className="mx-auto grid h-12 w-12 place-items-center rounded-full bg-background border border-border shadow-sm">
+                        {getAnimatedAchievementIcon(ach.icon, !!earned)}
                       </div>
                       <p className="text-xs font-bold mt-2">{ach.title}</p>
                       <p className="text-[10px] text-muted-foreground mt-0.5">{ach.description}</p>
@@ -639,7 +642,7 @@ function GamifiedDashboard() {
                 />
               </div>
               <div className="flex justify-end mt-1.5">
-                <span className="text-2xl">🎁</span>
+                <GiftIcon size={28} />
               </div>
             </div>
 
@@ -760,7 +763,7 @@ function GamifiedDashboard() {
                   <p className="text-xs text-brand font-semibold">Rank</p>
                   <p className="text-4xl font-extrabold tracking-tight">#{myRank ?? "—"}</p>
                 </div>
-                <div className="ml-auto text-5xl opacity-20">🏆</div>
+                <div className="ml-auto"><RankTrophyIcon /></div>
               </div>
               <Link to="/dashboard" className="text-xs text-brand font-semibold flex items-center gap-0.5 mt-3 hover:underline">
                 View leaderboard <ArrowRight className="h-3 w-3" />
@@ -898,10 +901,10 @@ function GamificationRingCard({ label, value, unit, level, fill, colorFrom, colo
   );
 }
 
-function MiniStat({ icon, label, value }: { icon: string; label: string; value: number | string }) {
+function MiniStat({ icon, label, value }: { icon: React.ReactNode; label: string; value: number | string }) {
   return (
     <div className="text-center p-3 rounded-xl bg-muted/30 border border-border/50">
-      <div className="text-2xl mb-1">{icon}</div>
+      <div className="flex justify-center mb-1">{icon}</div>
       <p className="text-[10px] text-muted-foreground font-medium leading-tight">{label}</p>
       <p className="text-xl font-extrabold mt-1">{value}</p>
     </div>
@@ -1076,10 +1079,42 @@ function PointsIcon() {
 
 function CoinsIcon() {
   return (
-    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" className="text-[#E8A838]">
-      <ellipse cx="12" cy="8" rx="7" ry="3" stroke="currentColor" strokeWidth="1.5" />
-      <path d="M5 8v4c0 1.66 3.13 3 7 3s7-1.34 7-3V8" stroke="currentColor" strokeWidth="1.5" />
-      <path d="M5 12v4c0 1.66 3.13 3 7 3s7-1.34 7-3v-4" stroke="currentColor" strokeWidth="1.5" />
-    </svg>
+    <div className="relative" style={{ width: 48, height: 48 }}>
+      <style>{`
+        @keyframes coin-fall-1 { 0% { opacity:0; transform:translateY(0); } 15% { opacity:1; } 85% { opacity:1; } 100% { opacity:0; transform:translateY(22px); } }
+        @keyframes coin-fall-2 { 0% { opacity:0; transform:translateY(0) rotate(0); } 20% { opacity:1; } 80% { opacity:1; } 100% { opacity:0; transform:translateY(20px) rotate(40deg); } }
+        @keyframes coin-fall-3 { 0% { opacity:0; transform:translateY(0) rotate(0); } 10% { opacity:1; } 90% { opacity:1; } 100% { opacity:0; transform:translateY(24px) rotate(-30deg); } }
+        @keyframes bag-react { 0%,80%,100% { transform:scale(1); } 90% { transform:scale(1.04); } }
+        @keyframes cloud-drift { 0%,100% { transform:translateX(0); } 50% { transform:translateX(1.5px); } }
+      `}</style>
+      <svg width="48" height="48" viewBox="0 0 48 48" fill="none">
+        {/* Cloud */}
+        <g style={{ animation: "cloud-drift 4s ease-in-out infinite" }}>
+          <ellipse cx="24" cy="8" rx="10" ry="4.5" fill="#e2e8f0" />
+          <ellipse cx="20" cy="7.5" rx="6" ry="4" fill="#f1f5f9" />
+          <ellipse cx="28" cy="7" rx="5" ry="3.5" fill="#f1f5f9" />
+          <ellipse cx="24" cy="6.5" rx="7" ry="3.5" fill="#f8fafc" />
+        </g>
+        {/* Falling coins */}
+        <g>
+          <circle cx="21" cy="13" r="2.5" fill="#F0C060" stroke="#D4A030" strokeWidth="0.5" style={{ animation: "coin-fall-1 2.8s ease-in infinite", animationDelay: "0s" }} />
+          <circle cx="27" cy="14" r="2" fill="#F0C060" stroke="#D4A030" strokeWidth="0.5" style={{ animation: "coin-fall-2 2.8s ease-in infinite", animationDelay: "0.5s" }} />
+          <circle cx="24" cy="12" r="2.2" fill="#F0C060" stroke="#D4A030" strokeWidth="0.5" style={{ animation: "coin-fall-3 2.8s ease-in infinite", animationDelay: "1s" }} />
+          <circle cx="19" cy="14" r="1.8" fill="#F0C060" stroke="#D4A030" strokeWidth="0.5" style={{ animation: "coin-fall-2 2.8s ease-in infinite", animationDelay: "1.6s" }} />
+        </g>
+        {/* Coin bag */}
+        <g style={{ animation: "bag-react 2.8s ease-in-out infinite", transformOrigin: "24px 38px" }}>
+          {/* Bag body */}
+          <path d="M16 34 C16 30 18 28 24 28 C30 28 32 30 32 34 C32 40 30 42 24 42 C18 42 16 40 16 34Z" fill="#E8A838" />
+          {/* Bag tie / neck */}
+          <path d="M20 28 C20 26 22 25 24 25 C26 25 28 26 28 28" stroke="#D4A030" strokeWidth="1.2" fill="none" />
+          <ellipse cx="24" cy="28" rx="4" ry="1" fill="#D4A030" />
+          {/* Dollar sign */}
+          <text x="24" y="37" fontSize="8" fill="#B8860B" textAnchor="middle" fontWeight="bold" fontFamily="system-ui">$</text>
+          {/* Bag highlight */}
+          <ellipse cx="21" cy="33" rx="2" ry="3" fill="#F0C060" opacity="0.4" />
+        </g>
+      </svg>
+    </div>
   );
 }
