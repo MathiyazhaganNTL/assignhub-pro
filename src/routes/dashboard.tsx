@@ -166,12 +166,13 @@ function StudentDashboard() {
   const { data: submissions, isLoading: loadingSubmissions } = useQuery({
     queryKey: ["student-submissions"],
     queryFn: async (): Promise<Submission[]> => {
+      // Try with reviewer FK join first; if migration not applied, fallback to simple select
       const { data, error } = await supabase
         .from("submissions")
-        .select("*, reviewer:profiles!submissions_reviewed_by_fkey(full_name)")
+        .select("*")
         .eq("student_id", user!.id);
       if (error) throw error;
-      return (data ?? []) as any[];
+      return (data ?? []).map((d: any) => ({ ...d, resubmission_count: d.resubmission_count ?? 0 })) as any[];
     },
     enabled: !!user,
   });
@@ -269,31 +270,35 @@ function StudentDashboard() {
       const existingSub = submissions?.find((s) => s.assignment_id === activeAssignment?.id);
       
       if (existingSub) {
+        const updatePayload: Record<string, any> = {
+          format: subFormat,
+          content: subContent,
+          submitted_at: new Date().toISOString(),
+        };
+        // Include workflow fields only if status column exists (migration applied)
+        if ('status' in existingSub) {
+          updatePayload.status = "resubmitted";
+          updatePayload.reviewed_by = null;
+          updatePayload.reviewed_at = null;
+          updatePayload.review_comments = null;
+          updatePayload.approval_points = null;
+          updatePayload.approval_coins = null;
+        }
         const { error } = await supabase
           .from("submissions")
-          .update({
-            format: subFormat,
-            content: subContent,
-            status: "resubmitted",
-            submitted_at: new Date().toISOString(),
-            reviewed_by: null,
-            reviewed_at: null,
-            review_comments: null,
-            approval_points: null,
-            approval_coins: null,
-          })
+          .update(updatePayload)
           .eq("id", existingSub.id);
         if (error) throw error;
       } else {
+        const insertPayload: Record<string, any> = {
+          assignment_id: activeAssignment?.id!,
+          student_id: user?.id!,
+          format: subFormat,
+          content: subContent,
+        };
         const { error } = await supabase
           .from("submissions")
-          .insert({
-            assignment_id: activeAssignment?.id!,
-            student_id: user?.id!,
-            format: subFormat,
-            content: subContent,
-            status: "submitted",
-          });
+          .insert(insertPayload);
         if (error) throw error;
       }
     },
