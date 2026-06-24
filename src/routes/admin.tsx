@@ -626,17 +626,35 @@ function SubmissionsTab() {
   const [approvalComments, setApprovalComments] = useState("");
   const [rejectionComments, setRejectionComments] = useState("");
 
-  const { data: submissions, isLoading } = useQuery({
+  const { data: submissions, isLoading, error } = useQuery({
     queryKey: ["submissions-admin"],
     queryFn: async (): Promise<Submission[]> => {
       const { data, error } = await supabase
         .from("submissions")
-        .select("*, assignment:assignments(*), student:profiles(*)")
+        .select("*, assignment:assignments(*), student:profiles!submissions_student_id_fkey(*)")
         .order("submitted_at", { ascending: false });
       if (error) throw error;
       return (data ?? []) as any[];
     },
   });
+
+  // Real-time postgres subscriptions for submissions
+  useEffect(() => {
+    const channel = supabase
+      .channel("admin-submissions")
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "submissions" },
+        () => {
+          qc.invalidateQueries({ queryKey: ["submissions-admin"] });
+        }
+      )
+      .subscribe();
+
+    return () => {
+      void supabase.removeChannel(channel);
+    };
+  }, [qc]);
 
   // Calculate stats metrics for cards
   const metrics = useMemo(() => {
@@ -869,6 +887,13 @@ function SubmissionsTab() {
             <TableBody>
               {isLoading ? (
                 <TableRow><TableCell colSpan={6} className="py-10 text-center text-sm text-muted-foreground"><Loader2 className="mr-2 inline h-4 w-4 animate-spin" />Loading…</TableCell></TableRow>
+              ) : error ? (
+                <TableRow>
+                  <TableCell colSpan={6} className="py-10 text-center text-sm text-destructive font-medium">
+                    <AlertCircle className="mr-2 inline h-4 w-4 text-destructive" />
+                    Failed to load submissions: {(error as any).message || String(error)}
+                  </TableCell>
+                </TableRow>
               ) : submissions?.length === 0 ? (
                 <TableRow><TableCell colSpan={6} className="py-10 text-center text-sm text-muted-foreground">No submissions recorded yet.</TableCell></TableRow>
               ) : submissions?.map((s) => {
@@ -1201,7 +1226,7 @@ function AnalyticsTab() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("submissions")
-        .select("*, assignment:assignments(*), student:profiles(*)");
+        .select("*, assignment:assignments(*), student:profiles!submissions_student_id_fkey(*)");
       if (error) throw error;
       return data as any[];
     }
