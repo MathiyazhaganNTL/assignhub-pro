@@ -38,7 +38,7 @@ function Header() {
     <header className="sticky top-0 z-40 border-b border-border/60 bg-background/80 backdrop-blur">
       <div className="mx-auto flex h-16 max-w-7xl items-center justify-between gap-2 px-4 sm:px-6 overflow-hidden">
         <Link to="/" className="flex items-center gap-2 shrink-0">
-          <div className="grid h-9 w-9 place-items-center rounded-xl bg-brand text-brand-foreground font-bold">A</div>
+          <img src="/logo.png" alt="AssignHub Logo" className="h-9 w-9 object-contain drop-shadow-[0_2px_8px_oklch(0.66_0.17_256_/_0.3)] shrink-0" />
           <span className="text-lg font-bold tracking-tight">AssignHub</span>
         </Link>
         <nav className="hidden items-center gap-7 text-sm font-medium text-muted-foreground md:flex">

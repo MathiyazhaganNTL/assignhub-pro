@@ -60,7 +60,7 @@ function AuthPage() {
     <div className="min-h-screen bg-background">
       <div className="mx-auto flex min-h-screen max-w-md flex-col px-4 py-10">
         <Link to="/" className="mb-8 inline-flex items-center gap-2 self-start text-sm text-muted-foreground hover:text-foreground">
-          <div className="grid h-7 w-7 place-items-center rounded-lg bg-brand text-brand-foreground text-xs font-bold">A</div>
+          <img src="/logo.png" alt="AssignHub Logo" className="h-7 w-7 object-contain drop-shadow-[0_2px_6px_oklch(0.66_0.17_256_/_0.3)] shrink-0" />
           AssignHub
         </Link>
 

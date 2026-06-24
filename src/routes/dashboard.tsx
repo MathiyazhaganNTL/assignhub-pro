@@ -370,7 +370,7 @@ function StudentDashboard() {
       <header className="border-b border-border bg-card sticky top-0 z-40">
         <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-4 sm:px-6">
           <div className="flex items-center gap-2">
-            <div className="grid h-8 w-8 place-items-center rounded-lg bg-brand text-brand-foreground text-sm font-bold">A</div>
+            <img src="/logo.png" alt="AssignHub Logo" className="h-8 w-8 object-contain drop-shadow-[0_2px_8px_oklch(0.66_0.17_256_/_0.3)] shrink-0" />
             <div>
               <div className="text-sm font-semibold leading-tight">AssignHub</div>
               <div className="text-xs text-muted-foreground leading-tight">Student Portal</div>

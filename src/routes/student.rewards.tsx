@@ -544,7 +544,7 @@ function GamifiedDashboard() {
             </Link>
             <div className="h-5 w-px bg-border hidden sm:block" />
             <div className="hidden sm:flex items-center gap-2">
-              <div className="grid h-8 w-8 place-items-center rounded-lg bg-brand text-brand-foreground text-sm font-bold shadow-sm">A</div>
+              <img src="/logo.png" alt="AssignHub Logo" className="h-8 w-8 object-contain drop-shadow-[0_2px_8px_oklch(0.66_0.17_256_/_0.3)] shrink-0" />
               <div>
                 <div className="text-sm font-semibold leading-tight">AssignHub</div>
                 <div className="text-[10px] text-muted-foreground leading-tight uppercase tracking-wider font-semibold">Student Portal</div>
