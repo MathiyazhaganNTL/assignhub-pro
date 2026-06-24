@@ -92,6 +92,10 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
         rel: "stylesheet",
         href: appCss,
       },
+      {
+        rel: "manifest",
+        href: "/manifest.webmanifest",
+      },
     ],
   }),
   shellComponent: RootShell,
@@ -116,6 +120,10 @@ function RootShell({ children }: { children: ReactNode }) {
 
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
+
+  useEffect(() => {
+    import("../pwa");
+  }, []);
 
   return (
     <QueryClientProvider client={queryClient}>

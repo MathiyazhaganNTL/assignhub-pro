@@ -5,6 +5,7 @@
 //     error logger plugins, and sandbox detection (port/host/strictPort).
 // You can pass additional config via defineConfig({ vite: { ... }, etc... }) if needed.
 import { defineConfig } from "@lovable.dev/vite-tanstack-config";
+import { VitePWA } from "vite-plugin-pwa";
 
 export default defineConfig({
   nitro: {
@@ -30,5 +31,32 @@ export default defineConfig({
     build: {
       chunkSizeWarningLimit: 2000,
     },
+    plugins: [
+      VitePWA({
+        registerType: "autoUpdate",
+        manifest: {
+          name: "AssignHub",
+          short_name: "AssignHub",
+          description: "Assignment Management Platform",
+          theme_color: "#3B82F6",
+          background_color: "#FFFFFF",
+          display: "standalone",
+          orientation: "portrait",
+          start_url: "/",
+          icons: [
+            {
+              src: "/logo-192.png",
+              sizes: "192x192",
+              type: "image/png"
+            },
+            {
+              src: "/logo-512.png",
+              sizes: "512x512",
+              type: "image/png"
+            }
+          ]
+        }
+      })
+    ]
   },
 });
