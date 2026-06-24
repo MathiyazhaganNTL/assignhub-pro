@@ -155,19 +155,21 @@ function AdminDashboard() {
           <h1 className="text-2xl font-bold tracking-tight">Admin Dashboard</h1>
           <p className="text-sm text-muted-foreground font-medium">Control access, upload assignments, track submissions, and check analytics.</p>
         </div>
-        <div className="inline-flex h-10 items-center justify-center rounded-lg bg-muted p-1 text-muted-foreground">
-          <button className={tabClass("students")} onClick={() => setActiveTab("students")}>
-            <Users className="mr-2 h-4 w-4" /> Students
-          </button>
-          <button className={tabClass("assignments")} onClick={() => setActiveTab("assignments")}>
-            <FileText className="mr-2 h-4 w-4" /> Assignments
-          </button>
-          <button className={tabClass("submissions")} onClick={() => setActiveTab("submissions")}>
-            <FileSpreadsheet className="mr-2 h-4 w-4" /> Submissions
-          </button>
-          <button className={tabClass("analytics")} onClick={() => setActiveTab("analytics")}>
-            <BarChart3 className="mr-2 h-4 w-4" /> Analytics
-          </button>
+        <div className="w-full overflow-x-auto scrollbar-none sm:w-auto -mx-4 px-4 sm:mx-0 sm:px-0">
+          <div className="inline-flex h-10 items-center rounded-lg bg-muted p-1 text-muted-foreground min-w-max">
+            <button className={tabClass("students")} onClick={() => setActiveTab("students")}>
+              <Users className="mr-2 h-4 w-4" /> Students
+            </button>
+            <button className={tabClass("assignments")} onClick={() => setActiveTab("assignments")}>
+              <FileText className="mr-2 h-4 w-4" /> Assignments
+            </button>
+            <button className={tabClass("submissions")} onClick={() => setActiveTab("submissions")}>
+              <FileSpreadsheet className="mr-2 h-4 w-4" /> Submissions
+            </button>
+            <button className={tabClass("analytics")} onClick={() => setActiveTab("analytics")}>
+              <BarChart3 className="mr-2 h-4 w-4" /> Analytics
+            </button>
+          </div>
         </div>
       </div>
 
@@ -463,7 +465,7 @@ function AssignmentsTab() {
           <DialogTrigger asChild>
             <Button size="sm"><Plus className="mr-1.5 h-4 w-4" /> Create Assignment</Button>
           </DialogTrigger>
-          <DialogContent className="sm:max-w-lg">
+          <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>{editingAssignment ? "Edit Assignment" : "Create Assignment"}</DialogTitle>
               <DialogDescription>
@@ -879,25 +881,22 @@ function SubmissionsTab() {
                 <TableHead>Student</TableHead>
                 <TableHead>Assignment</TableHead>
                 <TableHead>Submitted At</TableHead>
-                <TableHead>Delay Status</TableHead>
                 <TableHead>Actions</TableHead>
-                <TableHead>Verdict</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {isLoading ? (
-                <TableRow><TableCell colSpan={6} className="py-10 text-center text-sm text-muted-foreground"><Loader2 className="mr-2 inline h-4 w-4 animate-spin" />Loading…</TableCell></TableRow>
+                <TableRow><TableCell colSpan={4} className="py-10 text-center text-sm text-muted-foreground"><Loader2 className="mr-2 inline h-4 w-4 animate-spin" />Loading…</TableCell></TableRow>
               ) : error ? (
                 <TableRow>
-                  <TableCell colSpan={6} className="py-10 text-center text-sm text-destructive font-medium">
+                  <TableCell colSpan={4} className="py-10 text-center text-sm text-destructive font-medium">
                     <AlertCircle className="mr-2 inline h-4 w-4 text-destructive" />
                     Failed to load submissions: {(error as any).message || String(error)}
                   </TableCell>
                 </TableRow>
               ) : submissions?.length === 0 ? (
-                <TableRow><TableCell colSpan={6} className="py-10 text-center text-sm text-muted-foreground">No submissions recorded yet.</TableCell></TableRow>
+                <TableRow><TableCell colSpan={4} className="py-10 text-center text-sm text-muted-foreground">No submissions recorded yet.</TableCell></TableRow>
               ) : submissions?.map((s) => {
-                const isLate = new Date(s.submitted_at) > new Date(s.assignment?.deadline);
                 return (
                   <TableRow key={s.id}>
                     <TableCell>
@@ -909,45 +908,29 @@ function SubmissionsTab() {
                     <TableCell className="font-medium max-w-xs truncate">{s.assignment?.title}</TableCell>
                     <TableCell className="text-xs text-muted-foreground">{new Date(s.submitted_at).toLocaleString()}</TableCell>
                     <TableCell>
-                      {isLate ? (
-                        <Badge variant="destructive" className="bg-destructive/10 text-destructive border-destructive/20">Late Submission</Badge>
-                      ) : (
-                        <Badge variant="secondary" className="bg-success/10 text-success hover:bg-success/10 border-success/20 font-semibold">On Time</Badge>
-                      )}
-                    </TableCell>
-                    <TableCell>
-                      <Button size="sm" variant="outline" onClick={() => handleViewSubmission(s)}>
-                        <Eye className="h-4 w-4 mr-1.5" /> View
-                      </Button>
-                    </TableCell>
-                    <TableCell>
-                      {(() => {
-                        const status = s.status || 'submitted';
-                        if (status === 'approved') {
-                          return (
-                            <Badge variant="secondary" className="bg-success/15 text-success hover:bg-success/15 border-none font-semibold">
-                              <CheckCircle className="h-3 w-3 mr-1" /> Approved · +{s.approval_points ?? 0} pts
-                            </Badge>
-                          );
-                        }
-                        if (status === 'rejected') {
-                          return (
-                            <Badge variant="secondary" className="bg-destructive/15 text-destructive hover:bg-destructive/15 border-none font-semibold">
-                              <XCircle className="h-3 w-3 mr-1" /> Rejected
-                            </Badge>
-                          );
-                        }
-                        return (
-                          <div className="flex gap-2 items-center">
-                            <Button size="sm" className="bg-success text-success-foreground hover:bg-success/90 font-semibold shadow-sm" onClick={() => handleOpenApprove(s)}>
-                              <CheckCircle className="h-3.5 w-3.5 mr-1" /> Approve
-                            </Button>
-                            <Button size="sm" variant="destructive" className="font-semibold shadow-sm" onClick={() => handleOpenReject(s)}>
-                              <XCircle className="h-3.5 w-3.5 mr-1" /> Reject
-                            </Button>
-                          </div>
-                        );
-                      })()}
+                      <div className="flex items-center gap-3">
+                        <Button size="sm" variant="outline" onClick={() => handleViewSubmission(s)}>
+                          <Eye className="h-4 w-4 mr-1.5" /> View
+                        </Button>
+                        {(() => {
+                          const status = s.status || 'submitted';
+                          if (status === 'approved') {
+                            return (
+                              <Badge variant="secondary" className="bg-success/15 text-success hover:bg-success/15 border-none font-semibold">
+                                <CheckCircle className="h-3 w-3 mr-1" /> Approved · +{s.approval_points ?? 0} pts
+                              </Badge>
+                            );
+                          }
+                          if (status === 'rejected') {
+                            return (
+                              <Badge variant="secondary" className="bg-destructive/15 text-destructive hover:bg-destructive/15 border-none font-semibold">
+                                <XCircle className="h-3 w-3 mr-1" /> Rejected
+                              </Badge>
+                            );
+                          }
+                          return getStatusBadge(status);
+                        })()}
+                      </div>
                     </TableCell>
                   </TableRow>
                 );
@@ -959,48 +942,60 @@ function SubmissionsTab() {
 
       {/* 1. VIEW SUBMISSION MODAL */}
       <Dialog open={viewOpen} onOpenChange={setViewOpen}>
-        <DialogContent className="sm:max-w-xl">
+        <DialogContent className="sm:max-w-xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>View Submission Detail</DialogTitle>
             <DialogDescription>
               Review the student's answer text or file submission content.
             </DialogDescription>
           </DialogHeader>
-          {selectedSub && (
-            <div className="space-y-4 py-2.5">
-              <div className="grid grid-cols-2 gap-4 text-xs">
-                <div>
-                  <span className="block font-bold text-muted-foreground/80 mb-0.5 uppercase tracking-wide">Student</span>
-                  <span className="font-semibold text-foreground text-[13px]">{selectedSub.student?.full_name || "—"}</span>
-                  <span className="block text-muted-foreground mt-0.5">{selectedSub.student?.email}</span>
+          {selectedSub && (() => {
+            const isLate = new Date(selectedSub.submitted_at) > new Date(selectedSub.assignment?.deadline);
+            return (
+              <div className="space-y-4 py-2.5">
+                <div className="grid grid-cols-2 gap-4 text-xs">
+                  <div>
+                    <span className="block font-bold text-muted-foreground/80 mb-0.5 uppercase tracking-wide">Student</span>
+                    <span className="font-semibold text-foreground text-[13px]">{selectedSub.student?.full_name || "—"}</span>
+                    <span className="block text-muted-foreground mt-0.5">{selectedSub.student?.email}</span>
+                  </div>
+                  <div>
+                    <span className="block font-bold text-muted-foreground/80 mb-0.5 uppercase tracking-wide">Assignment</span>
+                    <span className="font-semibold text-foreground text-[13px]">{selectedSub.assignment?.title}</span>
+                  </div>
+                  <div>
+                    <span className="block font-bold text-muted-foreground/80 mb-0.5 uppercase tracking-wide">Submitted At</span>
+                    <span className="font-semibold text-foreground">{new Date(selectedSub.submitted_at).toLocaleString()}</span>
+                  </div>
+                  <div>
+                    <span className="block font-bold text-muted-foreground/80 mb-0.5 uppercase tracking-wide">Status</span>
+                    <div className="mt-1">{getStatusBadge(selectedSub.status)}</div>
+                  </div>
                 </div>
-                <div>
-                  <span className="block font-bold text-muted-foreground/80 mb-0.5 uppercase tracking-wide">Assignment</span>
-                  <span className="font-semibold text-foreground text-[13px]">{selectedSub.assignment?.title}</span>
-                </div>
-                <div>
-                  <span className="block font-bold text-muted-foreground/80 mb-0.5 uppercase tracking-wide">Submitted At</span>
-                  <span className="font-semibold text-foreground">{new Date(selectedSub.submitted_at).toLocaleString()}</span>
-                </div>
-                <div>
-                  <span className="block font-bold text-muted-foreground/80 mb-0.5 uppercase tracking-wide">Status</span>
-                  <div className="mt-1">{getStatusBadge(selectedSub.status)}</div>
-                </div>
-              </div>
 
-              <div className="grid grid-cols-2 gap-4 text-xs pt-3 border-t border-border">
-                <div>
-                  <span className="block font-bold text-muted-foreground/80 mb-0.5 uppercase tracking-wide">Resubmission Count</span>
-                  <span className="font-semibold text-foreground text-[13px]">{selectedSub.resubmission_count ?? 0} / 2</span>
-                  {(selectedSub.resubmission_count ?? 0) >= 2 && (
-                    <span className="block text-[10px] text-destructive font-medium mt-0.5">Limit reached</span>
-                  )}
+                <div className="grid grid-cols-3 gap-4 text-xs pt-3 border-t border-border">
+                  <div>
+                    <span className="block font-bold text-muted-foreground/80 mb-0.5 uppercase tracking-wide">Resubmission Count</span>
+                    <span className="font-semibold text-foreground text-[13px]">{selectedSub.resubmission_count ?? 0} / 2</span>
+                    {(selectedSub.resubmission_count ?? 0) >= 2 && (
+                      <span className="block text-[10px] text-destructive font-medium mt-0.5">Limit reached</span>
+                    )}
+                  </div>
+                  <div>
+                    <span className="block font-bold text-muted-foreground/80 mb-0.5 uppercase tracking-wide">Submission Format</span>
+                    <span className="font-semibold text-foreground text-[13px] capitalize">{selectedSub.format}</span>
+                  </div>
+                  <div>
+                    <span className="block font-bold text-muted-foreground/80 mb-0.5 uppercase tracking-wide">Delay Status</span>
+                    <div className="mt-1">
+                      {isLate ? (
+                        <Badge variant="destructive" className="bg-destructive/10 text-destructive border-destructive/20 font-semibold">Late Submission</Badge>
+                      ) : (
+                        <Badge variant="secondary" className="bg-success/10 text-success hover:bg-success/10 border-success/20 font-semibold">On Time</Badge>
+                      )}
+                    </div>
+                  </div>
                 </div>
-                <div>
-                  <span className="block font-bold text-muted-foreground/80 mb-0.5 uppercase tracking-wide">Submission Format</span>
-                  <span className="font-semibold text-foreground text-[13px] capitalize">{selectedSub.format}</span>
-                </div>
-              </div>
 
               <div className="space-y-1.5 pt-2 border-t border-border">
                 <span className="text-xs font-bold text-muted-foreground/80 uppercase tracking-wide">Submitted Document</span>
@@ -1059,7 +1054,7 @@ function SubmissionsTab() {
                 </div>
               )}
             </div>
-          )}
+          )})()}
           <DialogFooter className="flex-row gap-2 sm:gap-2">
             <Button variant="outline" onClick={() => setViewOpen(false)}>Close</Button>
             {selectedSub && (selectedSub.status === 'submitted' || selectedSub.status === 'under_review' || selectedSub.status === 'resubmitted') && (
@@ -1085,7 +1080,7 @@ function SubmissionsTab() {
 
       {/* 2. APPROVE SUBMISSION MODAL */}
       <Dialog open={approveOpen} onOpenChange={setApproveOpen}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="sm:max-w-md max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Approve Submission</DialogTitle>
             <DialogDescription>
@@ -1150,7 +1145,7 @@ function SubmissionsTab() {
 
       {/* 3. REJECT SUBMISSION MODAL */}
       <Dialog open={rejectOpen} onOpenChange={setRejectOpen}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="sm:max-w-md max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Reject Submission</DialogTitle>
             <DialogDescription>
@@ -1393,12 +1388,12 @@ function StatTile({ icon: Icon, label, value, tone }: { icon: any; label: string
     indigo: "text-indigo-600 bg-indigo-500/10",
   }[tone];
   return (
-    <div className="rounded-xl border border-border bg-card p-5">
+    <div className="rounded-xl border border-border bg-card p-4 sm:p-5">
       <div className="flex items-center justify-between">
         <span className="text-sm text-muted-foreground font-medium">{label}</span>
         <span className={`grid h-8 w-8 place-items-center rounded-lg ${toneClass}`}><Icon className="h-4 w-4" /></span>
       </div>
-      <div className="mt-2 text-3xl font-bold tracking-tight">{value}</div>
+      <div className="mt-2 text-2xl sm:text-3xl font-bold tracking-tight">{value}</div>
     </div>
   );
 }
