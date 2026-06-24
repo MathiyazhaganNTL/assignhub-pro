@@ -73,6 +73,7 @@ interface Submission {
   review_comments?: string | null;
   approval_points?: number | null;
   approval_coins?: number | null;
+  resubmission_count: number;
   reviewer?: {
     full_name: string | null;
   } | null;
@@ -567,29 +568,46 @@ function StudentDashboard() {
                         </div>
                       )}
 
-                      {sub && (
-                        <div className="mt-4 p-3.5 bg-muted/20 border border-border/40 rounded-xl text-xs space-y-2">
-                          <p className="font-bold text-foreground">Review Status</p>
-                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-2 text-muted-foreground">
-                            <div>
-                              <span className="block text-[10px] uppercase font-bold text-muted-foreground/70 mb-0.5">Status:</span>
-                              <span className="font-semibold text-foreground capitalize text-[13px]">{sub.status.replace('_', ' ')}</span>
-                            </div>
-                            
-                            {sub.reviewed_by && (
-                              <div>
-                                <span className="block text-[10px] uppercase font-bold text-muted-foreground/70 mb-0.5">Reviewed By:</span>
-                                <span className="font-semibold text-foreground text-[13px]">{sub.reviewer?.full_name || "Admin"}</span>
-                              </div>
-                            )}
-                            
-                            {sub.review_comments && (
-                              <div className="sm:col-span-2 mt-1">
-                                <span className="block text-[10px] uppercase font-bold text-muted-foreground/70 mb-1">Comments:</span>
-                                <div className="bg-background border border-border/80 rounded-lg p-2.5 text-foreground font-medium italic whitespace-pre-wrap leading-relaxed">{sub.review_comments}</div>
-                              </div>
-                            )}
+                      {sub && sub.status === "approved" && (
+                        <div className="mt-4 p-3.5 bg-success/5 border border-success/20 rounded-xl text-xs space-y-1.5">
+                          <div className="flex items-center gap-1.5">
+                            <CheckCircle2 className="h-4 w-4 text-success" />
+                            <span className="font-bold text-success text-[13px]">Assignment Approved</span>
                           </div>
+                          {(sub.approval_points || sub.approval_coins) && (
+                            <p className="text-muted-foreground font-medium">Earned <span className="text-foreground font-bold">+{sub.approval_points} points</span> & <span className="text-foreground font-bold">+{sub.approval_coins} coins</span></p>
+                          )}
+                          {sub.review_comments && (
+                            <div className="bg-background border border-success/20 rounded-lg p-2.5 text-foreground font-medium italic whitespace-pre-wrap leading-relaxed mt-1">{sub.review_comments}</div>
+                          )}
+                        </div>
+                      )}
+
+                      {sub && sub.status === "rejected" && (
+                        <div className="mt-4 p-3.5 bg-destructive/5 border border-destructive/20 rounded-xl text-xs space-y-1.5">
+                          <div className="flex items-center gap-1.5">
+                            <XCircle className="h-4 w-4 text-destructive" />
+                            <span className="font-bold text-destructive text-[13px]">Assignment Rejected</span>
+                          </div>
+                          {sub.review_comments && (
+                            <div className="mt-1">
+                              <span className="block text-[10px] uppercase font-bold text-destructive/70 mb-1">Reason for Rejection:</span>
+                              <div className="bg-background border border-destructive/20 rounded-lg p-2.5 text-foreground font-medium whitespace-pre-wrap leading-relaxed">{sub.review_comments}</div>
+                            </div>
+                          )}
+                          <p className="text-muted-foreground font-medium mt-1">Please review the feedback above and resubmit your work.</p>
+                        </div>
+                      )}
+
+                      {sub && (sub.status === "submitted" || sub.status === "under_review" || sub.status === "resubmitted") && (
+                        <div className="mt-4 p-3.5 bg-muted/20 border border-border/40 rounded-xl text-xs space-y-1.5">
+                          <div className="flex items-center gap-1.5">
+                            <Eye className="h-4 w-4 text-muted-foreground" />
+                            <span className="font-bold text-foreground text-[13px] capitalize">{sub.status.replace('_', ' ')}</span>
+                          </div>
+                          {sub.reviewed_by && (
+                            <p className="text-muted-foreground font-medium">Reviewed by: <span className="text-foreground font-semibold">{sub.reviewer?.full_name || "Admin"}</span></p>
+                          )}
                         </div>
                       )}
                     </div>
@@ -600,60 +618,77 @@ function StudentDashboard() {
                       </div>
                       
                       {(!sub || sub.status === 'rejected') && (
-                        <Dialog open={submissionOpen && activeAssignment?.id === a.id} onOpenChange={(val) => { setSubmissionOpen(val); if(val) setActiveAssignment(a); else resetForm(); }}>
-                          <DialogTrigger asChild>
-                            {sub ? (
-                              <Button size="sm" variant="outline" className="border-destructive text-destructive hover:bg-destructive/10 hover:text-destructive font-semibold shadow-sm" onClick={() => handleOpenDialog(a, sub)}><RefreshCw className="mr-1.5 h-3.5 w-3.5" /> Resubmit Assignment</Button>
-                            ) : (
-                              <Button size="sm" variant={isLate ? "destructive" : "default"} onClick={() => handleOpenDialog(a)}><UploadCloud className="mr-1.5 h-4 w-4" /> Submit Work</Button>
-                            )}
-                          </DialogTrigger>
-                          <DialogContent className="sm:max-w-md">
-                            <DialogHeader>
-                              <DialogTitle>{sub ? "Resubmit assignment" : "Submit assignment"}</DialogTitle>
-                              <DialogDescription>
-                                {sub ? `Upload your revised submission response for "${a.title}".` : `Upload your submission response for "${a.title}".`}
-                              </DialogDescription>
-                            </DialogHeader>
-                            <div className="space-y-4 py-2">
-                              <div className="space-y-1.5">
-                                <label className="text-sm font-semibold">Submission format</label>
-                                <Select value={subFormat} onValueChange={(val: any) => { setSubFormat(val); setSubContent(""); }}>
-                                  <SelectTrigger><SelectValue /></SelectTrigger>
-                                  <SelectContent>
-                                    <SelectItem value="text">Written text answer</SelectItem>
-                                    <SelectItem value="file">File upload</SelectItem>
-                                  </SelectContent>
-                                </Select>
+                        (() => {
+                          const resubLimitReached = sub && sub.status === 'rejected' && (sub.resubmission_count ?? 0) >= 2;
+                          
+                          if (resubLimitReached) {
+                            return (
+                              <div className="flex flex-col items-end gap-1.5">
+                                <Button size="sm" variant="outline" className="border-muted text-muted-foreground font-semibold shadow-sm cursor-not-allowed opacity-60" disabled>
+                                  <RefreshCw className="mr-1.5 h-3.5 w-3.5" /> Resubmit Assignment
+                                </Button>
+                                <p className="text-[10px] text-destructive font-medium text-right max-w-[200px] leading-tight">Maximum resubmission limit reached. Please contact administrator.</p>
                               </div>
+                            );
+                          }
+                          
+                          return (
+                            <Dialog open={submissionOpen && activeAssignment?.id === a.id} onOpenChange={(val) => { setSubmissionOpen(val); if(val) setActiveAssignment(a); else resetForm(); }}>
+                              <DialogTrigger asChild>
+                                {sub ? (
+                                  <Button size="sm" variant="outline" className="border-destructive text-destructive hover:bg-destructive/10 hover:text-destructive font-semibold shadow-sm" onClick={() => handleOpenDialog(a, sub)}><RefreshCw className="mr-1.5 h-3.5 w-3.5" /> Resubmit Assignment</Button>
+                                ) : (
+                                  <Button size="sm" variant={isLate ? "destructive" : "default"} onClick={() => handleOpenDialog(a)}><UploadCloud className="mr-1.5 h-4 w-4" /> Submit Work</Button>
+                                )}
+                              </DialogTrigger>
+                              <DialogContent className="sm:max-w-md">
+                                <DialogHeader>
+                                  <DialogTitle>{sub ? "Resubmit assignment" : "Submit assignment"}</DialogTitle>
+                                  <DialogDescription>
+                                    {sub ? `Upload your revised submission response for "${a.title}".` : `Upload your submission response for "${a.title}".`}
+                                  </DialogDescription>
+                                </DialogHeader>
+                                <div className="space-y-4 py-2">
+                                  <div className="space-y-1.5">
+                                    <label className="text-sm font-semibold">Submission format</label>
+                                    <Select value={subFormat} onValueChange={(val: any) => { setSubFormat(val); setSubContent(""); }}>
+                                      <SelectTrigger><SelectValue /></SelectTrigger>
+                                      <SelectContent>
+                                        <SelectItem value="text">Written text answer</SelectItem>
+                                        <SelectItem value="file">File upload</SelectItem>
+                                      </SelectContent>
+                                    </Select>
+                                  </div>
 
-                              {subFormat === "text" ? (
-                                <div className="space-y-1.5">
-                                  <label className="text-sm font-semibold">Your response text</label>
-                                  <Textarea value={subContent} onChange={(e) => setSubContent(e.target.value)} placeholder="Type your text submission details here..." rows={6} />
-                                </div>
-                              ) : (
-                                <div className="space-y-1.5 border border-dashed border-border rounded-lg p-4 bg-muted/40">
-                                  <label className="text-sm font-semibold block mb-2">Upload attachment</label>
-                                  <Input type="file" onChange={uploadSubmissionFile} disabled={uploading} className="bg-background cursor-pointer" />
-                                  {uploading && <div className="text-xs text-muted-foreground mt-1"><Loader2 className="mr-1 inline h-3.5 w-3.5 animate-spin" />Uploading file to storage...</div>}
-                                  {subContent && !uploading && (
-                                    <div className="text-xs text-brand font-medium mt-2 flex items-center gap-1">
-                                      <CheckCircle2 className="h-3.5 w-3.5 text-success" /> File ready: <a href={subContent} target="_blank" rel="noreferrer" className="underline truncate max-w-xs">{subContent}</a>
+                                  {subFormat === "text" ? (
+                                    <div className="space-y-1.5">
+                                      <label className="text-sm font-semibold">Your response text</label>
+                                      <Textarea value={subContent} onChange={(e) => setSubContent(e.target.value)} placeholder="Type your text submission details here..." rows={6} />
+                                    </div>
+                                  ) : (
+                                    <div className="space-y-1.5 border border-dashed border-border rounded-lg p-4 bg-muted/40">
+                                      <label className="text-sm font-semibold block mb-2">Upload attachment</label>
+                                      <Input type="file" onChange={uploadSubmissionFile} disabled={uploading} className="bg-background cursor-pointer" />
+                                      {uploading && <div className="text-xs text-muted-foreground mt-1"><Loader2 className="mr-1 inline h-3.5 w-3.5 animate-spin" />Uploading file to storage...</div>}
+                                      {subContent && !uploading && (
+                                        <div className="text-xs text-brand font-medium mt-2 flex items-center gap-1">
+                                          <CheckCircle2 className="h-3.5 w-3.5 text-success" /> File ready
+                                        </div>
+                                      )}
                                     </div>
                                   )}
                                 </div>
-                              )}
-                            </div>
-                            <DialogFooter>
-                              <Button variant="outline" onClick={() => setSubmissionOpen(false)}>Cancel</Button>
-                              <Button onClick={() => submitAssignment.mutate()} disabled={!subContent || submitAssignment.isPending}>
-                                {submitAssignment.isPending && <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />}
-                                {sub ? "Resubmit" : "Submit"}
-                              </Button>
-                            </DialogFooter>
-                          </DialogContent>
-                        </Dialog>
+                                <DialogFooter>
+                                  <Button variant="outline" onClick={() => setSubmissionOpen(false)}>Cancel</Button>
+                                  <Button onClick={() => submitAssignment.mutate()} disabled={!subContent || submitAssignment.isPending}>
+                                    {submitAssignment.isPending && <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />}
+                                    {sub ? "Resubmit" : "Submit"}
+                                  </Button>
+                                </DialogFooter>
+                              </DialogContent>
+                            </Dialog>
+                          );
+                        })()
                       )}
                     </div>
                   </div>

@@ -35,12 +35,14 @@ function AdminLoginPage() {
   useEffect(() => {
     if (authLoading) return;
     if (!user) return;
+    // Role not yet loaded — wait for it before deciding
+    if (!role) return;
     if (role === "admin") navigate({ to: "/admin", replace: true });
     else if (profile?.status === "approved") {
-      toast.error("This login is for administrators only. Redirecting to student dashboard.");
+      toast.info("Welcome! This page is for admin access. Taking you to your student dashboard.", { icon: "🎓" });
       navigate({ to: "/dashboard", replace: true });
     } else {
-      toast.error("This login is for administrators only.");
+      toast.info("This portal is reserved for administrators. Please use the student login to access your account.", { icon: "🔒" });
       supabase.auth.signOut();
     }
   }, [authLoading, user, role, profile, navigate]);

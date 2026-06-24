@@ -55,13 +55,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [role, setRole] = useState<AppRole | null>(null);
 
   const hydrate = async (s: Session | null) => {
-    setSession(s);
-    setUser(s?.user ?? null);
     if (s?.user) {
+      // Load profile & role BEFORE setting any state so the UI never
+      // sees an intermediate state where user is set but role is null.
       const { profile, role } = await loadProfileAndRole(s.user.id);
+      setSession(s);
+      setUser(s.user);
       setProfile(profile);
       setRole(role);
     } else {
+      setSession(null);
+      setUser(null);
       setProfile(null);
       setRole(null);
     }
@@ -78,10 +82,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const refresh = async () => {
-    if (user) {
-      const { profile, role } = await loadProfileAndRole(user.id);
-      setProfile(profile);
-      setRole(role);
+    // Fetch the session directly from Supabase rather than relying on
+    // React state, which may be stale right after signInWithPassword.
+    const { data: { session: currentSession } } = await supabase.auth.getSession();
+    const currentUser = currentSession?.user ?? user;
+    if (currentUser) {
+      const { profile: p, role: r } = await loadProfileAndRole(currentUser.id);
+      setSession(currentSession ?? session);
+      setUser(currentUser);
+      setProfile(p);
+      setRole(r);
+      setLoading(false);
     }
   };
 

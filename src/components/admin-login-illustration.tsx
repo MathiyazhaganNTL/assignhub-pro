@@ -137,6 +137,8 @@ export function AdminLoginIllustration() {
               <motion.rect
                 key={`b${i}`}
                 x={162 + i * 13}
+                y={148 - h}
+                height={h}
                 width="9"
                 rx="2"
                 animate={{ y: 148 - h, height: h }}

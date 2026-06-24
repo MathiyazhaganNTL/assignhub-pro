@@ -148,6 +148,7 @@ export type Database = {
           review_comments: string | null
           approval_points: number | null
           approval_coins: number | null
+          resubmission_count: number
         }
         Insert: {
           id?: string
@@ -162,6 +163,7 @@ export type Database = {
           review_comments?: string | null
           approval_points?: number | null
           approval_coins?: number | null
+          resubmission_count?: number
         }
         Update: {
           id?: string
@@ -176,6 +178,7 @@ export type Database = {
           review_comments?: string | null
           approval_points?: number | null
           approval_coins?: number | null
+          resubmission_count?: number
         }
         Relationships: [
           {

@@ -503,12 +503,12 @@ function GamifiedDashboard() {
 
   const todayApprovedSubmissions = useMemo(() => {
     const today = new Date().toDateString();
-    return submissions?.filter((s) => s.status === "approved" && new Date(s.submitted_at).toDateString() === today).length ?? 0;
+    return submissions?.filter((s) => s.status === "approved" && s.reviewed_at && new Date(s.reviewed_at).toDateString() === today).length ?? 0;
   }, [submissions]);
 
   const coinsEarnedToday = useMemo(() => {
     const today = new Date().toDateString();
-    return submissions?.filter((s) => s.status === "approved" && new Date(s.submitted_at).toDateString() === today)
+    return submissions?.filter((s) => s.status === "approved" && s.reviewed_at && new Date(s.reviewed_at).toDateString() === today)
       .reduce((sum, s) => sum + (s.approval_coins || 0), 0) ?? 0;
   }, [submissions]);
 
@@ -779,29 +779,46 @@ function GamifiedDashboard() {
                             <div className="mt-4"><Button size="sm" variant="outline" asChild><a href={a.content} target="_blank" rel="noreferrer"><FileText className="mr-1.5 h-3.5 w-3.5" /> View PDF document</a></Button></div>
                           )}
 
-                          {sub && (
-                            <div className="mt-4 p-3.5 bg-muted/20 border border-border/40 rounded-xl text-xs space-y-2">
-                              <p className="font-bold text-foreground">Review Status</p>
-                              <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-2 text-muted-foreground">
-                                <div>
-                                  <span className="block text-[10px] uppercase font-bold text-muted-foreground/70 mb-0.5">Status:</span>
-                                  <span className="font-semibold text-foreground capitalize text-[13px]">{sub.status.replace('_', ' ')}</span>
-                                </div>
-                                
-                                {sub.reviewed_by && (
-                                  <div>
-                                    <span className="block text-[10px] uppercase font-bold text-muted-foreground/70 mb-0.5">Reviewed By:</span>
-                                    <span className="font-semibold text-foreground text-[13px]">{sub.reviewer?.full_name || "Admin"}</span>
-                                  </div>
-                                )}
-                                
-                                {sub.review_comments && (
-                                  <div className="sm:col-span-2 mt-1">
-                                    <span className="block text-[10px] uppercase font-bold text-muted-foreground/70 mb-1">Comments:</span>
-                                    <div className="bg-background border border-border/80 rounded-lg p-2.5 text-foreground font-medium italic whitespace-pre-wrap leading-relaxed">{sub.review_comments}</div>
-                                  </div>
-                                )}
+                          {sub && sub.status === "approved" && (
+                            <div className="mt-4 p-3.5 bg-success/5 border border-success/20 rounded-xl text-xs space-y-1.5">
+                              <div className="flex items-center gap-1.5">
+                                <CheckCircle2 className="h-4 w-4 text-success" />
+                                <span className="font-bold text-success text-[13px]">Assignment Approved</span>
                               </div>
+                              {(sub.approval_points || sub.approval_coins) && (
+                                <p className="text-muted-foreground font-medium">Earned <span className="text-foreground font-bold">+{sub.approval_points} points</span> & <span className="text-foreground font-bold">+{sub.approval_coins} coins</span></p>
+                              )}
+                              {sub.review_comments && (
+                                <div className="bg-background border border-success/20 rounded-lg p-2.5 text-foreground font-medium italic whitespace-pre-wrap leading-relaxed mt-1">{sub.review_comments}</div>
+                              )}
+                            </div>
+                          )}
+
+                          {sub && sub.status === "rejected" && (
+                            <div className="mt-4 p-3.5 bg-destructive/5 border border-destructive/20 rounded-xl text-xs space-y-1.5">
+                              <div className="flex items-center gap-1.5">
+                                <XCircle className="h-4 w-4 text-destructive" />
+                                <span className="font-bold text-destructive text-[13px]">Assignment Rejected</span>
+                              </div>
+                              {sub.review_comments && (
+                                <div className="mt-1">
+                                  <span className="block text-[10px] uppercase font-bold text-destructive/70 mb-1">Reason for Rejection:</span>
+                                  <div className="bg-background border border-destructive/20 rounded-lg p-2.5 text-foreground font-medium whitespace-pre-wrap leading-relaxed">{sub.review_comments}</div>
+                                </div>
+                              )}
+                              <p className="text-muted-foreground font-medium mt-1">Please review the feedback above and resubmit your work.</p>
+                            </div>
+                          )}
+
+                          {sub && (sub.status === "submitted" || sub.status === "under_review" || sub.status === "resubmitted") && (
+                            <div className="mt-4 p-3.5 bg-muted/20 border border-border/40 rounded-xl text-xs space-y-1.5">
+                              <div className="flex items-center gap-1.5">
+                                <Eye className="h-4 w-4 text-muted-foreground" />
+                                <span className="font-bold text-foreground text-[13px] capitalize">{sub.status.replace('_', ' ')}</span>
+                              </div>
+                              {sub.reviewed_by && (
+                                <p className="text-muted-foreground font-medium">Reviewed by: <span className="text-foreground font-semibold">{sub.reviewer?.full_name || "Admin"}</span></p>
+                              )}
                             </div>
                           )}
                         </div>

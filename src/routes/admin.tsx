@@ -603,6 +603,7 @@ interface Submission {
   review_comments: string | null;
   approval_points: number | null;
   approval_coins: number | null;
+  resubmission_count: number;
   assignment: Assignment;
   student: Profile;
 }
@@ -860,9 +861,9 @@ function SubmissionsTab() {
                 <TableHead>Student</TableHead>
                 <TableHead>Assignment</TableHead>
                 <TableHead>Submitted At</TableHead>
-                <TableHead>Delay status</TableHead>
-                <TableHead>Review Status</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
+                <TableHead>Delay Status</TableHead>
+                <TableHead>Actions</TableHead>
+                <TableHead>Verdict</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -890,33 +891,38 @@ function SubmissionsTab() {
                       )}
                     </TableCell>
                     <TableCell>
-                      {getStatusBadge(s.status)}
+                      <Button size="sm" variant="outline" onClick={() => handleViewSubmission(s)}>
+                        <Eye className="h-4 w-4 mr-1.5" /> View
+                      </Button>
                     </TableCell>
-                    <TableCell className="text-right">
-                      <div className="flex justify-end gap-2 items-center">
-                        <Button size="sm" variant="outline" onClick={() => handleViewSubmission(s)}>
-                          <Eye className="h-4 w-4 mr-1.5" /> View
-                        </Button>
-                        
-                        {(s.status === 'submitted' || s.status === 'under_review' || s.status === 'resubmitted') && (
-                          <>
+                    <TableCell>
+                      {(() => {
+                        const status = s.status || 'submitted';
+                        if (status === 'approved') {
+                          return (
+                            <Badge variant="secondary" className="bg-success/15 text-success hover:bg-success/15 border-none font-semibold">
+                              <CheckCircle className="h-3 w-3 mr-1" /> Approved · +{s.approval_points ?? 0} pts
+                            </Badge>
+                          );
+                        }
+                        if (status === 'rejected') {
+                          return (
+                            <Badge variant="secondary" className="bg-destructive/15 text-destructive hover:bg-destructive/15 border-none font-semibold">
+                              <XCircle className="h-3 w-3 mr-1" /> Rejected
+                            </Badge>
+                          );
+                        }
+                        return (
+                          <div className="flex gap-2 items-center">
                             <Button size="sm" className="bg-success text-success-foreground hover:bg-success/90 font-semibold shadow-sm" onClick={() => handleOpenApprove(s)}>
-                              Approve
+                              <CheckCircle className="h-3.5 w-3.5 mr-1" /> Approve
                             </Button>
                             <Button size="sm" variant="destructive" className="font-semibold shadow-sm" onClick={() => handleOpenReject(s)}>
-                              Reject
+                              <XCircle className="h-3.5 w-3.5 mr-1" /> Reject
                             </Button>
-                          </>
-                        )}
-                        
-                        {s.status === 'approved' && (
-                          <span className="text-xs font-bold text-success pr-2">+{s.approval_points} pts / +{s.approval_coins} coins</span>
-                        )}
-                        
-                        {s.status === 'rejected' && (
-                          <span className="text-xs font-bold text-destructive pr-2">Revision Required</span>
-                        )}
-                      </div>
+                          </div>
+                        );
+                      })()}
                     </TableCell>
                   </TableRow>
                 );
@@ -957,20 +963,41 @@ function SubmissionsTab() {
                 </div>
               </div>
 
+              <div className="grid grid-cols-2 gap-4 text-xs pt-3 border-t border-border">
+                <div>
+                  <span className="block font-bold text-muted-foreground/80 mb-0.5 uppercase tracking-wide">Resubmission Count</span>
+                  <span className="font-semibold text-foreground text-[13px]">{selectedSub.resubmission_count ?? 0} / 2</span>
+                  {(selectedSub.resubmission_count ?? 0) >= 2 && (
+                    <span className="block text-[10px] text-destructive font-medium mt-0.5">Limit reached</span>
+                  )}
+                </div>
+                <div>
+                  <span className="block font-bold text-muted-foreground/80 mb-0.5 uppercase tracking-wide">Submission Format</span>
+                  <span className="font-semibold text-foreground text-[13px] capitalize">{selectedSub.format}</span>
+                </div>
+              </div>
+
               <div className="space-y-1.5 pt-2 border-t border-border">
-                <span className="text-xs font-bold text-muted-foreground/80 uppercase tracking-wide">Submission Response</span>
+                <span className="text-xs font-bold text-muted-foreground/80 uppercase tracking-wide">Submitted Document</span>
                 {selectedSub.format === "file" ? (
-                  <div className="border border-border/80 rounded-xl p-4 bg-muted/20 flex flex-col sm:flex-row items-center justify-between gap-3 w-full overflow-hidden">
-                    <div className="flex items-center gap-2.5 min-w-0 w-full sm:w-auto flex-1">
-                      <FileText className="h-8 w-8 text-brand shrink-0" />
+                  <div className="border border-border/80 rounded-xl p-4 bg-muted/20 w-full overflow-hidden">
+                    <div className="flex items-center gap-3 mb-3">
+                      <div className="grid h-10 w-10 place-items-center rounded-lg bg-brand/10 shrink-0">
+                        <FileText className="h-5 w-5 text-brand" />
+                      </div>
                       <div className="min-w-0 flex-1">
-                        <p className="text-xs font-semibold truncate">{getFileName(selectedSub.content)}</p>
-                        <p className="text-[10px] text-muted-foreground truncate block" title={selectedSub.content}>{selectedSub.content}</p>
+                        <p className="text-sm font-semibold truncate">{getFileName(selectedSub.content)}</p>
+                        <p className="text-[10px] text-muted-foreground">Uploaded document</p>
                       </div>
                     </div>
-                    <Button size="sm" variant="outline" asChild className="shrink-0 font-semibold w-full sm:w-auto mt-2 sm:mt-0">
-                      <a href={selectedSub.content} target="_blank" rel="noreferrer"><LinkIcon className="mr-1.5 h-3.5 w-3.5" /> Download File</a>
-                    </Button>
+                    <div className="flex gap-2">
+                      <Button size="sm" variant="outline" asChild className="flex-1 font-semibold">
+                        <a href={`https://docs.google.com/gview?url=${encodeURIComponent(selectedSub.content)}&embedded=false`} target="_blank" rel="noreferrer"><Eye className="mr-1.5 h-3.5 w-3.5" /> Preview</a>
+                      </Button>
+                      <Button size="sm" variant="outline" asChild className="flex-1 font-semibold">
+                        <a href={selectedSub.content} download rel="noreferrer"><LinkIcon className="mr-1.5 h-3.5 w-3.5" /> Download</a>
+                      </Button>
+                    </div>
                   </div>
                 ) : (
                   <div className="border border-border/80 rounded-xl p-4 bg-muted/20 max-h-60 overflow-y-auto whitespace-pre-wrap text-sm text-foreground font-mono leading-relaxed">
@@ -1008,8 +1035,25 @@ function SubmissionsTab() {
               )}
             </div>
           )}
-          <DialogFooter>
-            <Button onClick={() => setViewOpen(false)}>Close</Button>
+          <DialogFooter className="flex-row gap-2 sm:gap-2">
+            <Button variant="outline" onClick={() => setViewOpen(false)}>Close</Button>
+            {selectedSub && (selectedSub.status === 'submitted' || selectedSub.status === 'under_review' || selectedSub.status === 'resubmitted') && (
+              <>
+                <Button
+                  className="bg-success text-success-foreground hover:bg-success/90 font-semibold"
+                  onClick={() => { setViewOpen(false); handleOpenApprove(selectedSub); }}
+                >
+                  <CheckCircle className="h-4 w-4 mr-1.5" /> Approve
+                </Button>
+                <Button
+                  variant="destructive"
+                  className="font-semibold"
+                  onClick={() => { setViewOpen(false); handleOpenReject(selectedSub); }}
+                >
+                  <XCircle className="h-4 w-4 mr-1.5" /> Reject
+                </Button>
+              </>
+            )}
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -1103,8 +1147,12 @@ function SubmissionsTab() {
                   placeholder="e.g. Database explanation incomplete. Please add normalization examples and resubmit."
                   rows={4}
                   required
+                  minLength={20}
                 />
-                <p className="text-[10px] text-muted-foreground">Describe what the student needs to correct.</p>
+                <div className="flex items-center justify-between">
+                  <p className="text-[10px] text-muted-foreground">Describe what the student needs to correct. Minimum 20 characters.</p>
+                  <span className={`text-[10px] font-medium ${rejectionComments.trim().length < 20 ? 'text-destructive' : 'text-success'}`}>{rejectionComments.trim().length}/20</span>
+                </div>
               </div>
             </div>
           )}
@@ -1112,7 +1160,7 @@ function SubmissionsTab() {
             <Button variant="outline" onClick={() => setRejectOpen(false)}>Cancel</Button>
             <Button
               onClick={handleRejectSubmit}
-              disabled={!rejectionComments.trim() || rejectSubmissionMutation.isPending}
+              disabled={rejectionComments.trim().length < 20 || rejectSubmissionMutation.isPending}
               variant="destructive"
               className="font-semibold"
             >
