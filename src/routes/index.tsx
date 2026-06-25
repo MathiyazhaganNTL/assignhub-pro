@@ -4,8 +4,9 @@ import { Button } from "@/components/ui/button";
 import {
   ShieldCheck, ClipboardList, Activity, BarChart3, Bell, Lock,
   ArrowRight, CheckCircle2, GraduationCap, Building2, Briefcase, Users,
-  UserPlus, LogIn,
+  UserPlus, LogIn, Compass
 } from "lucide-react";
+import { useOnboarding } from "@/lib/onboarding-context";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -20,6 +21,8 @@ export const Route = createFileRoute("/")({
 });
 
 function Index() {
+  const { startTour } = useOnboarding();
+
   return (
     <div className="min-h-screen bg-background text-foreground">
       <Header />
@@ -29,13 +32,23 @@ function Index() {
       <Benefits />
       <CTA />
       <Footer />
+      {/* Floating Help / Tour Button */}
+      <button
+        onClick={() => startTour("landing")}
+        className="fixed bottom-6 right-6 z-40 flex h-12 w-12 items-center justify-center rounded-full bg-brand text-brand-foreground shadow-lg shadow-brand/20 hover:scale-105 transition-all duration-200 cursor-pointer border border-brand-foreground/10"
+        title="Product Tour"
+      >
+        <Compass className="h-5.5 w-5.5" />
+      </button>
     </div>
   );
 }
 
 function Header() {
+  const { startTour } = useOnboarding();
+
   return (
-    <header className="sticky top-0 z-40 border-b border-border/60 bg-background/80 backdrop-blur">
+    <header data-tour="landing-header" className="sticky top-0 z-40 border-b border-border/60 bg-background/80 backdrop-blur">
       <div className="mx-auto flex h-16 max-w-7xl items-center justify-between gap-2 px-4 sm:px-6 overflow-hidden">
         <Link to="/" className="flex items-center gap-2 shrink-0">
           <img src="/logo.png" alt="AssignHub Logo" className="h-9 w-9 object-contain drop-shadow-[0_2px_8px_oklch(0.66_0.17_256_/_0.3)] shrink-0" />
@@ -45,6 +58,12 @@ function Header() {
           <a href="#features" className="hover:text-foreground">Features</a>
           <a href="#how" className="hover:text-foreground">How it works</a>
           <a href="#benefits" className="hover:text-foreground">For institutes</a>
+          <button 
+            onClick={() => startTour("landing")} 
+            className="text-brand hover:text-brand/80 font-semibold cursor-pointer flex items-center gap-1"
+          >
+            <Compass className="h-3.5 w-3.5" /> Product Tour
+          </button>
         </nav>
         <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
           {/* Full sign-in on sm+, icon-only on xs */}
@@ -52,7 +71,7 @@ function Header() {
           <Button asChild variant="ghost" size="icon" className="sm:hidden h-9 w-9"><Link to="/auth" search={{ tab: "signin" }}><LogIn className="h-4 w-4" /></Link></Button>
           {/* Full button on sm+, compact on xs */}
           <Button asChild size="sm" className="hidden sm:inline-flex"><Link to="/auth" search={{ tab: "signup" }}><UserPlus className="mr-1.5 h-3.5 w-3.5" /> Request access</Link></Button>
-          <Button asChild size="sm" className="sm:hidden text-xs px-2.5"><Link to="/auth" search={{ tab: "signup" }}><UserPlus className="mr-1 h-3.5 w-3.5" /> Register</Link></Button>
+          <Button asChild size="sm" className="sm:hidden text-xs px-2.5"><Link to="/auth" search={{ tab: "signup" }}><UserPlus className="mr-1.5 h-3.5 w-3.5" /> Register</Link></Button>
         </div>
       </div>
     </header>
@@ -61,7 +80,7 @@ function Header() {
 
 function Hero() {
   return (
-    <section className="relative overflow-hidden">
+    <section data-tour="landing-hero" className="relative overflow-hidden">
       <div className="pointer-events-none absolute inset-0 -z-10 [background:radial-gradient(60%_50%_at_50%_0%,color-mix(in_oklab,var(--brand)_18%,transparent),transparent_60%)]" />
       <div className="mx-auto max-w-7xl px-4 pb-20 pt-16 sm:px-6 sm:pt-24 lg:pb-28">
         <div className="mx-auto max-w-3xl text-center">
@@ -77,16 +96,16 @@ function Hero() {
             Students request access, admins approve, and assignments unlock. A secure platform for colleges, coaching centers, training institutes and hiring programs.
           </p>
           <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
-            <Button asChild size="lg" className="h-12 px-6 text-base">
+            <Button data-tour="landing-student-register" asChild size="lg" className="h-12 px-6 text-base shadow-md shadow-brand/10">
               <Link to="/auth" search={{ tab: "signup" }}><UserPlus className="mr-2 h-4 w-4" /> Request student access</Link>
             </Button>
-            <Button asChild size="lg" variant="outline" className="h-12 px-6 text-base">
+            <Button data-tour="landing-admin-login" asChild size="lg" variant="outline" className="h-12 px-6 text-base">
               <Link to="/admin-login"><ShieldCheck className="mr-2 h-4 w-4" /> Admin login</Link>
             </Button>
           </div>
           <p className="mt-4 text-sm text-muted-foreground">
             Already a student?{" "}
-            <Link to="/auth" search={{ tab: "signin" }} className="font-medium text-brand hover:underline">Student sign in</Link>
+            <Link data-tour="landing-student-login" to="/auth" search={{ tab: "signin" }} className="font-medium text-brand hover:underline">Student sign in</Link>
           </p>
         </div>
         <div className="mx-auto mt-16 max-w-5xl"><DashboardPreview /></div>
@@ -190,7 +209,7 @@ function Features() {
   const tripled = [...features, ...features, ...features];
 
   return (
-    <section id="features" className="border-t border-border bg-surface py-20 sm:py-24 overflow-hidden">
+    <section id="features" data-tour="landing-features" className="border-t border-border bg-surface py-20 sm:py-24 overflow-hidden">
       <div className="mx-auto max-w-7xl px-4 sm:px-6">
         <div className="mx-auto max-w-2xl text-center">
           <h2 className="text-3xl font-bold tracking-tight sm:text-4xl">Everything you need to run assignments</h2>

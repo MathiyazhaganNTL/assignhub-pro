@@ -42,8 +42,9 @@ import {
   LogOut, Bell, CheckCircle2, Clock, AlertCircle, FileText,
   Link as LinkIcon, UploadCloud, Loader2, Check, User, Settings,
   ChevronDown, Phone, ChevronLeft, ChevronRight, ArrowRight, ArrowLeft,
-  Eye, XCircle, Upload, RefreshCw
+  Eye, XCircle, Upload, RefreshCw, Compass
 } from "lucide-react";
+import { useOnboarding } from "@/lib/onboarding-context";
 import {
   CoinVaultIcon,
   ClipboardCheckIcon,
@@ -204,6 +205,7 @@ function GamifiedDashboard() {
   const navigate = useNavigate();
   const qc = useQueryClient();
   const { user, loading, role, profile, signOut } = useAuth();
+  const { startTour } = useOnboarding();
 
   // Modal State
   const [activeAssignment, setActiveAssignment] = useState<Assignment | null>(null);
@@ -634,6 +636,9 @@ function GamifiedDashboard() {
                   <DropdownMenuItem asChild className="cursor-pointer">
                     <Link to="/student/profile" search={{ edit: true }}><Settings className="h-4 w-4 mr-2" /> Edit Profile</Link>
                   </DropdownMenuItem>
+                  <DropdownMenuItem className="cursor-pointer text-brand hover:text-brand font-semibold" onClick={() => startTour("student")}>
+                    <Compass className="h-4 w-4 mr-2" /> Product Tour
+                  </DropdownMenuItem>
                 </DropdownMenuGroup>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem className="cursor-pointer text-destructive focus:text-destructive focus:bg-destructive/10" onClick={() => signOut().then(() => navigate({ to: "/", replace: true }))}>
@@ -659,26 +664,30 @@ function GamifiedDashboard() {
 
             {/* Points & Coins Cards */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <GamificationRingCard
-                label="My Points"
-                value={totalPoints}
-                unit="points"
-                level={pointsLevel}
-                fill={pointsRing}
-                colorFrom="#4F7DF3"
-                colorTo="#7B9CF8"
-                icon={<PointsIcon />}
-              />
-              <GamificationRingCard
-                label="My Coins"
-                value={totalCoins}
-                unit="coins"
-                level={coinLevel}
-                fill={coinRing}
-                colorFrom="#E8A838"
-                colorTo="#F0C060"
-                icon={<CoinsIcon />}
-              />
+              <div data-tour="rewards-points">
+                <GamificationRingCard
+                  label="My Points"
+                  value={totalPoints}
+                  unit="points"
+                  level={pointsLevel}
+                  fill={pointsRing}
+                  colorFrom="#4F7DF3"
+                  colorTo="#7B9CF8"
+                  icon={<PointsIcon />}
+                />
+              </div>
+              <div data-tour="rewards-coins">
+                <GamificationRingCard
+                  label="My Coins"
+                  value={totalCoins}
+                  unit="coins"
+                  level={coinLevel}
+                  fill={coinRing}
+                  colorFrom="#E8A838"
+                  colorTo="#F0C060"
+                  icon={<CoinsIcon />}
+                />
+              </div>
             </div>
 
             {/* Today Summary */}
@@ -692,7 +701,7 @@ function GamifiedDashboard() {
             </div>
 
             {/* Achievements */}
-            <div className="rounded-2xl border border-border bg-card p-5">
+            <div data-tour="rewards-achievements" className="rounded-2xl border border-border bg-card p-5">
               <h2 className="text-base font-bold mb-4">Achievements</h2>
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                 {(allAchievements ?? []).map((ach) => {
@@ -740,7 +749,7 @@ function GamifiedDashboard() {
             </div>
 
             {/* Your Assignments */}
-            <div className="space-y-4">
+            <div data-tour="rewards-assignments" className="space-y-4">
               <h2 className="text-xl font-bold tracking-tight">Your Assignments</h2>
               {!assignments || assignments.length === 0 ? (
                 <div className="rounded-xl border border-dashed border-border bg-card p-12 text-center">
@@ -913,7 +922,7 @@ function GamifiedDashboard() {
             </div>
 
             {/* Leaderboard */}
-            <div className="rounded-2xl border border-border bg-card p-5">
+            <div data-tour="rewards-leaderboard" className="rounded-2xl border border-border bg-card p-5">
               <h2 className="text-base font-bold mb-4">Student Leaderboard</h2>
               <div className="space-y-2.5">
                 {(!leaderboard || leaderboard.length === 0) ? (
@@ -934,7 +943,7 @@ function GamifiedDashboard() {
             </div>
 
             {/* Assignment Calendar */}
-            <div className="rounded-2xl border border-border bg-card p-5">
+            <div data-tour="rewards-calendar" className="rounded-2xl border border-border bg-card p-5">
               <h2 className="text-base font-bold mb-3">Assignment Calendar</h2>
               <CalendarWidget
                 month={calMonth}

@@ -41,8 +41,9 @@ import {
   LogOut, Users, ShieldCheck, Clock4, XCircle, CheckCircle2, Search, Loader2,
   Plus, FileText, Link as LinkIcon, Trash2, Edit3, Calendar, FileSpreadsheet,
   AlertCircle, BarChart3, TrendingUp, CheckCircle, Clock, ChevronDown, User, Settings,
-  Eye, Upload, RefreshCw
+  Eye, Upload, RefreshCw, Compass
 } from "lucide-react";
+import { useOnboarding } from "@/lib/onboarding-context";
 
 export const Route = createFileRoute("/admin")({
   head: () => ({ meta: [{ title: "Admin — AssignHub" }] }),
@@ -52,6 +53,7 @@ export const Route = createFileRoute("/admin")({
 function AdminPage() {
   const navigate = useNavigate();
   const { user, loading, role, profile, signOut } = useAuth();
+  const { startTour } = useOnboarding();
 
   useEffect(() => {
     if (loading) return;
@@ -80,7 +82,7 @@ function AdminPage() {
           {/* Admin Profile Dropdown */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <button className="flex items-center gap-2.5 rounded-full p-1 pr-3 hover:bg-muted/60 transition-colors outline-none focus-visible:ring-2 focus-visible:ring-ring" id="admin-profile-trigger">
+              <button data-tour="admin-profile-trigger" className="flex items-center gap-2.5 rounded-full p-1 pr-3 hover:bg-muted/60 transition-colors outline-none focus-visible:ring-2 focus-visible:ring-ring" id="admin-profile-trigger">
                 <Avatar className="h-8 w-8 border-2 border-brand/25">
                   <AvatarImage src={profile?.profile_picture_url || undefined} alt={profile?.full_name || "Admin"} />
                   <AvatarFallback className="bg-brand/15 text-brand text-xs font-bold">{adminInitials}</AvatarFallback>
@@ -121,6 +123,9 @@ function AdminPage() {
                     <Settings className="h-4 w-4 mr-2" /> Account Settings
                   </Link>
                 </DropdownMenuItem>
+                <DropdownMenuItem className="cursor-pointer text-brand hover:text-brand font-semibold" onClick={() => startTour("admin")}>
+                  <Compass className="h-4 w-4 mr-2" /> Product Tour
+                </DropdownMenuItem>
               </DropdownMenuGroup>
               <DropdownMenuSeparator />
               <DropdownMenuItem
@@ -157,16 +162,16 @@ function AdminDashboard() {
         </div>
         <div className="w-full overflow-x-auto scrollbar-none sm:w-auto -mx-4 px-4 sm:mx-0 sm:px-0">
           <div className="inline-flex h-10 items-center rounded-lg bg-muted p-1 text-muted-foreground min-w-max">
-            <button className={tabClass("students")} onClick={() => setActiveTab("students")}>
+            <button data-tour-tab="students" className={tabClass("students")} onClick={() => setActiveTab("students")}>
               <Users className="mr-2 h-4 w-4" /> Students
             </button>
-            <button className={tabClass("assignments")} onClick={() => setActiveTab("assignments")}>
+            <button data-tour-tab="assignments" className={tabClass("assignments")} onClick={() => setActiveTab("assignments")}>
               <FileText className="mr-2 h-4 w-4" /> Assignments
             </button>
-            <button className={tabClass("submissions")} onClick={() => setActiveTab("submissions")}>
+            <button data-tour-tab="submissions" className={tabClass("submissions")} onClick={() => setActiveTab("submissions")}>
               <FileSpreadsheet className="mr-2 h-4 w-4" /> Submissions
             </button>
-            <button className={tabClass("analytics")} onClick={() => setActiveTab("analytics")}>
+            <button data-tour-tab="analytics" className={tabClass("analytics")} onClick={() => setActiveTab("analytics")}>
               <BarChart3 className="mr-2 h-4 w-4" /> Analytics
             </button>
           </div>
@@ -238,14 +243,14 @@ function StudentsTab() {
 
   return (
     <div className="space-y-6">
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+      <div data-tour="admin-overview" className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <StatTile icon={Users} label="Total students" value={stats.total} tone="brand" />
         <StatTile icon={Clock4} label="Pending Requests" value={stats.pending} tone="warning" />
         <StatTile icon={CheckCircle2} label="Approved" value={stats.approved} tone="success" />
         <StatTile icon={XCircle} label="Rejected" value={stats.rejected} tone="destructive" />
       </div>
 
-      <div className="rounded-xl border border-border bg-card">
+      <div data-tour="admin-students" className="rounded-xl border border-border bg-card">
         <div className="flex flex-col gap-3 border-b border-border p-4 sm:flex-row sm:items-center sm:justify-between">
           <div className="inline-flex h-9 items-center justify-center rounded-lg bg-muted p-1 text-muted-foreground">
             {["pending", "approved", "rejected", "all"].map((f) => (
@@ -458,7 +463,7 @@ function AssignmentsTab() {
   };
 
   return (
-    <div className="space-y-4">
+    <div data-tour="admin-assignments" className="space-y-4">
       <div className="flex justify-between items-center">
         <h2 className="text-xl font-bold tracking-tight">Assignment management</h2>
         <Dialog open={open} onOpenChange={(val) => { setOpen(val); if(!val) resetForm(); }}>
@@ -858,7 +863,7 @@ function SubmissionsTab() {
   };
 
   return (
-    <div className="space-y-6">
+    <div data-tour="admin-submissions" className="space-y-6">
       {/* 5 Status Cards */}
       <div className="grid gap-3 grid-cols-2 sm:grid-cols-3 lg:grid-cols-5">
         <StatTile icon={Upload} label="Submitted" value={metrics.submitted} tone="brand" />
@@ -909,7 +914,7 @@ function SubmissionsTab() {
                     <TableCell className="text-xs text-muted-foreground">{new Date(s.submitted_at).toLocaleString()}</TableCell>
                     <TableCell>
                       <div className="flex items-center gap-3">
-                        <Button size="sm" variant="outline" onClick={() => handleViewSubmission(s)}>
+                        <Button data-tour="admin-actions" size="sm" variant="outline" onClick={() => handleViewSubmission(s)}>
                           <Eye className="h-4 w-4 mr-1.5" /> View
                         </Button>
                         {(() => {
@@ -1281,7 +1286,7 @@ function AnalyticsTab() {
   }, [submissions]);
 
   return (
-    <div className="space-y-6">
+    <div data-tour="admin-analytics" className="space-y-6">
       {/* 5 Status Cards */}
       <div className="grid gap-3 grid-cols-2 sm:grid-cols-3 lg:grid-cols-5">
         <StatTile icon={Upload} label="Submitted" value={statusCounts.submitted} tone="brand" />

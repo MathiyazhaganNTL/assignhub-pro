@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import type { Database } from "@/integrations/supabase/types";
 import { useAuth } from "@/lib/auth-context";
+import { useOnboarding } from "@/lib/onboarding-context";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -42,7 +43,7 @@ import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import {
   LogOut, BookOpen, Bell, CheckCircle2, Clock, AlertCircle, FileText,
   Link as LinkIcon, UploadCloud, Loader2, Check, RefreshCw, Sparkles,
-  User, Settings, ChevronDown, Phone, Trophy, Eye, XCircle, Upload
+  User, Settings, ChevronDown, Phone, Trophy, Eye, XCircle, Upload, Compass
 } from "lucide-react";
 import { CoinVaultIcon } from "@/components/gamification-icons";
 
@@ -130,6 +131,7 @@ function StudentDashboard() {
   const navigate = useNavigate();
   const qc = useQueryClient();
   const { user, loading, role, profile, signOut } = useAuth();
+  const { startTour } = useOnboarding();
   
   // Modal State
   const [activeAssignment, setActiveAssignment] = useState<Assignment | null>(null);
@@ -368,7 +370,7 @@ function StudentDashboard() {
 
   return (
     <div className="min-h-screen bg-background">
-      <header className="border-b border-border bg-card sticky top-0 z-40">
+      <header data-tour="dashboard-header" className="border-b border-border bg-card sticky top-0 z-40">
         <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-4 sm:px-6">
           <div className="flex items-center gap-2">
             <img src="/logo.png" alt="AssignHub Logo" className="h-8 w-8 object-contain drop-shadow-[0_2px_8px_oklch(0.66_0.17_256_/_0.3)] shrink-0" />
@@ -382,7 +384,7 @@ function StudentDashboard() {
             {/* Notification Bell */}
             <Popover onOpenChange={(open) => { if(open && unreadCount > 0) markNotificationsRead.mutate(); }}>
               <PopoverTrigger asChild>
-                <Button variant="ghost" size="icon" className="relative">
+                <Button data-tour="dashboard-notifications" variant="ghost" size="icon" className="relative">
                   <Bell className="h-4.5 w-4.5 text-muted-foreground" />
                   {unreadCount > 0 && (
                     <span className="absolute top-1.5 right-1.5 h-2 w-2 rounded-full bg-destructive animate-pulse" />
@@ -417,7 +419,7 @@ function StudentDashboard() {
             {/* Profile Dropdown */}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <button className="flex items-center gap-2 rounded-full p-1 pr-2 hover:bg-muted/60 transition-colors outline-none focus-visible:ring-2 focus-visible:ring-ring" id="profile-menu-trigger">
+                <button data-tour="dashboard-profile" className="flex items-center gap-2 rounded-full p-1 pr-2 hover:bg-muted/60 transition-colors outline-none focus-visible:ring-2 focus-visible:ring-ring" id="profile-menu-trigger">
                   <Avatar className="h-8 w-8 border-2 border-brand/20">
                     <AvatarImage src={profile.profile_picture_url || undefined} alt={profile.full_name || "Student"} />
                     <AvatarFallback className="bg-brand/10 text-brand text-xs font-bold">
@@ -470,6 +472,10 @@ function StudentDashboard() {
                       Edit Profile
                     </Link>
                   </DropdownMenuItem>
+                  <DropdownMenuItem className="cursor-pointer text-brand hover:text-brand font-semibold" onClick={() => startTour("student")}>
+                    <Compass className="h-4 w-4 mr-2" />
+                    Product Tour
+                  </DropdownMenuItem>
                 </DropdownMenuGroup>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem
@@ -519,7 +525,7 @@ function StudentDashboard() {
           <StatCard icon={Clock} label="Pending submission" value={String(stats.active)} tone={stats.active > 0 ? "warning" : "default"} />
         </div>
 
-        <div className="space-y-4">
+        <div data-tour="dashboard-assignments" className="space-y-4">
           <h2 className="text-xl font-bold tracking-tight">Your Assignments</h2>
           
           {loadingAssignments || loadingSubmissions ? (
