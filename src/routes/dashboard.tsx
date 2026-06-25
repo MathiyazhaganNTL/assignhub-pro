@@ -3,6 +3,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+import type { Database } from "@/integrations/supabase/types";
 import { useAuth } from "@/lib/auth-context";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -270,7 +271,7 @@ function StudentDashboard() {
       const existingSub = submissions?.find((s) => s.assignment_id === activeAssignment?.id);
       
       if (existingSub) {
-        const updatePayload: Record<string, any> = {
+        const updatePayload: Database["public"]["Tables"]["submissions"]["Update"] = {
           format: subFormat,
           content: subContent,
           submitted_at: new Date().toISOString(),
@@ -290,7 +291,7 @@ function StudentDashboard() {
           .eq("id", existingSub.id);
         if (error) throw error;
       } else {
-        const insertPayload: Record<string, any> = {
+        const insertPayload: Database["public"]["Tables"]["submissions"]["Insert"] = {
           assignment_id: activeAssignment?.id!,
           student_id: user?.id!,
           format: subFormat,
