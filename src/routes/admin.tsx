@@ -638,10 +638,18 @@ function SubmissionsTab() {
     queryFn: async (): Promise<Submission[]> => {
       const { data, error } = await supabase
         .from("submissions")
-        .select("*, assignment:assignments(*), student:profiles!submissions_student_id_fkey(*)")
+        .select("*, assignment:assignments(*)")
         .order("submitted_at", { ascending: false });
       if (error) throw error;
-      return (data ?? []) as any[];
+      
+      const subs = data ?? [];
+      if (subs.length === 0) return [];
+      
+      const studentIds = Array.from(new Set(subs.map(s => s.student_id)));
+      const { data: profiles } = await supabase.from("profiles").select("*").in("id", studentIds);
+      const profileMap = Object.fromEntries((profiles || []).map(p => [p.id, p]));
+      
+      return subs.map(s => ({ ...s, student: profileMap[s.student_id] })) as any[];
     },
   });
 
@@ -1226,9 +1234,17 @@ function AnalyticsTab() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("submissions")
-        .select("*, assignment:assignments(*), student:profiles!submissions_student_id_fkey(*)");
+        .select("*, assignment:assignments(*)");
       if (error) throw error;
-      return data as any[];
+      
+      const subs = data ?? [];
+      if (subs.length === 0) return [];
+      
+      const studentIds = Array.from(new Set(subs.map(s => s.student_id)));
+      const { data: profiles } = await supabase.from("profiles").select("*").in("id", studentIds);
+      const profileMap = Object.fromEntries((profiles || []).map(p => [p.id, p]));
+      
+      return subs.map(s => ({ ...s, student: profileMap[s.student_id] })) as any[];
     }
   });
 

@@ -50,6 +50,10 @@ function AdminLoginPage() {
   const { register, handleSubmit, formState: { errors, isSubmitting } } =
     useForm<z.infer<typeof signInSchema>>({ 
       resolver: zodResolver(signInSchema),
+      defaultValues: {
+        email: "admin@assignhub.com",
+        password: "admin123",
+      }
     });
 
   const onSubmit = async (data: z.infer<typeof signInSchema>) => {
@@ -81,6 +85,23 @@ function AdminLoginPage() {
           {/* Animated Illustration */}
           <div className="mb-4">
             <AdminLoginIllustration />
+          </div>
+
+          {/* Testing Credentials Banner */}
+          <div className="mb-5 rounded-xl border border-warning/30 bg-warning/5 p-3.5 text-sm text-warning-foreground">
+            <div className="flex items-start gap-2.5">
+              <ShieldCheck className="mt-0.5 h-4 w-4 text-warning shrink-0" />
+              <div>
+                <p className="font-semibold text-xs uppercase tracking-wider text-warning/90 mb-1">Testing Credentials Pre-filled</p>
+                <div className="space-y-0.5 text-xs text-muted-foreground">
+                  <p><span className="font-medium text-foreground/80">Email:</span> admin@assignhub.com</p>
+                  <p><span className="font-medium text-foreground/80">Password:</span> admin123</p>
+                </div>
+                <p className="mt-2 text-[11px] text-muted-foreground/80 leading-normal">
+                  Simply click <strong className="text-warning/90">Sign in as Admin</strong> below to log in instantly.
+                </p>
+              </div>
+            </div>
           </div>
 
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">

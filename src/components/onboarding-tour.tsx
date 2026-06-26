@@ -44,20 +44,15 @@ export function OnboardingTour() {
     return () => window.removeEventListener("resize", handleResize);
   }, []);
 
-  // 2. Track target element's coordinates and handles scroll positioning
+  // 2. Scroll target element into view once when step changes
   useEffect(() => {
-    if (!isActive || !step) {
-      setRect(null);
-      return;
-    }
-
-    const updateRect = () => {
+    if (!isActive || !step) return;
+    
+    // Defer slightly to allow tab changes or DOM updates to complete
+    const timer = setTimeout(() => {
       const el = document.querySelector(step.targetSelector);
       if (el) {
         const bounds = el.getBoundingClientRect();
-        setRect(bounds);
-        
-        // If elements are out of viewport view, scroll smoothly to center
         const isOutOfView =
           bounds.top < 0 ||
           bounds.bottom > window.innerHeight ||
@@ -67,6 +62,23 @@ export function OnboardingTour() {
         if (isOutOfView) {
           el.scrollIntoView({ behavior: "smooth", block: "center" });
         }
+      }
+    }, 100);
+
+    return () => clearTimeout(timer);
+  }, [isActive, currentStep, step?.targetSelector]);
+
+  // 3. Track target element's coordinates dynamically
+  useEffect(() => {
+    if (!isActive || !step) {
+      setRect(null);
+      return;
+    }
+
+    const updateRect = () => {
+      const el = document.querySelector(step.targetSelector);
+      if (el) {
+        setRect(el.getBoundingClientRect());
       } else {
         setRect(null);
       }
