@@ -384,7 +384,9 @@ function GamifiedDashboard() {
       .on("postgres_changes", { event: "*", schema: "public", table: "user_coins", filter: `user_id=eq.${user.id}` }, () => {
         qc.invalidateQueries({ queryKey: ["user-coins"] });
       })
-      .subscribe();
+      .subscribe((status) => {
+        console.log("Student Rewards realtime subscription status:", status);
+      });
     return () => { void supabase.removeChannel(channel); };
   }, [user, qc]);
 

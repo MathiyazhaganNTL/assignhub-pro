@@ -664,7 +664,9 @@ function SubmissionsTab() {
           qc.invalidateQueries({ queryKey: ["submissions-admin"] });
         }
       )
-      .subscribe();
+      .subscribe((status) => {
+        console.log("Admin Submissions realtime subscription status:", status);
+      });
 
     return () => {
       void supabase.removeChannel(channel);

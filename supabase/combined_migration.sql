@@ -225,6 +225,8 @@ alter publication supabase_realtime add table public.assignments;
 alter publication supabase_realtime add table public.submissions;
 alter publication supabase_realtime add table public.notifications;
 alter publication supabase_realtime add table public.profiles;
+alter publication supabase_realtime add table public.user_points;
+alter publication supabase_realtime add table public.user_coins;
 
 -- Create Storage buckets
 INSERT INTO storage.buckets (id, name, public) VALUES ('assignments', 'assignments', true) ON CONFLICT DO NOTHING;

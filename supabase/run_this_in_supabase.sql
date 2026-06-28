@@ -135,7 +135,7 @@ CREATE TRIGGER on_submission_status_changed
 BEFORE INSERT OR UPDATE OF status ON public.submissions
 FOR EACH ROW EXECUTE FUNCTION public.handle_submission_status_change();
 
--- 7. Enable realtime for submissions (if not already)
+-- 7. Enable realtime for submissions, user_points, and user_coins (if not already)
 DO $$
 BEGIN
   IF NOT EXISTS (
@@ -143,6 +143,20 @@ BEGIN
     WHERE pubname = 'supabase_realtime' AND tablename = 'submissions'
   ) THEN
     ALTER PUBLICATION supabase_realtime ADD TABLE public.submissions;
+  END IF;
+
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_publication_tables 
+    WHERE pubname = 'supabase_realtime' AND tablename = 'user_points'
+  ) THEN
+    ALTER PUBLICATION supabase_realtime ADD TABLE public.user_points;
+  END IF;
+
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_publication_tables 
+    WHERE pubname = 'supabase_realtime' AND tablename = 'user_coins'
+  ) THEN
+    ALTER PUBLICATION supabase_realtime ADD TABLE public.user_coins;
   END IF;
 END
 $$;

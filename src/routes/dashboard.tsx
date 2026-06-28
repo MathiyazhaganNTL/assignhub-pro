@@ -238,7 +238,9 @@ function StudentDashboard() {
         { event: "*", schema: "public", table: "user_coins", filter: `user_id=eq.${user.id}` },
         () => { qc.invalidateQueries({ queryKey: ["user-coins"] }); }
       )
-      .subscribe();
+      .subscribe((status) => {
+        console.log("Student Dashboard realtime subscription status:", status);
+      });
 
     return () => {
       void supabase.removeChannel(channel);
